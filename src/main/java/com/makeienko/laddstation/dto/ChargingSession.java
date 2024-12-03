@@ -1,14 +1,17 @@
 package com.makeienko.laddstation.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ChargingSession {
-    private String stationId;
-    private String sessionId;
-    private String userId;
-    private double currentPower;
-    private double totalEnergy;
-    private String status;
-    private int zone;
+    private List<Double> hourlyPrices; // Elpriser per timme
+    private List<Double> hourlyBaseload; // Hushållsförbrukning per timme
+    private double batteryPercentage; // Nuvarande batterinivå
+    private double chargingPower; // Laddstationens effekt i kW (vi har 7.4 kW)
 }
