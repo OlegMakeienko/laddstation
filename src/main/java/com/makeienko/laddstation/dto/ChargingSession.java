@@ -10,4 +10,5 @@ public class ChargingSession {
     private double currentPower;
     private double totalEnergy;
     private String status;
+    private int zone;
 }
