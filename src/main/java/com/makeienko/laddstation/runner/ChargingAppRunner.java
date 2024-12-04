@@ -19,5 +19,8 @@ public class ChargingAppRunner implements CommandLineRunner {
     public void run(String... args) throws Exception {
 
         chargingService.displayInfoResponse();
+
+        // Hämta och visa elpriser för SE3
+        chargingService.fetchAndDisplayPriceForElZone();
     }
 }

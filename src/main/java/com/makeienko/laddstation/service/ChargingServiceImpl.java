@@ -1,7 +1,7 @@
 package com.makeienko.laddstation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.makeienko.laddstation.dto.InfoResponse;
+import com.makeienko.laddstation.dto.InfoResponse;import com.makeienko.laddstation.dto.PricePerHourResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -47,6 +47,26 @@ public class ChargingServiceImpl implements ChargingService {
             System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
+        }
+    }
+
+    @Override
+    public void fetchAndDisplayPriceForElZone() {
+        try {
+            // Hämta JSON som en lista från /priceperhour
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
+
+            // Deserialisera JSON till en lista av priser
+            ObjectMapper objectMapper = new ObjectMapper();
+            double[] hourlyPrices = objectMapper.readValue(jsonResponse, double[].class);
+
+            // Skriv ut priserna för varje timme
+            System.out.println("Elpriser för elområde (Stockholm):");
+            for (int i = 0; i < hourlyPrices.length; i++) {
+                System.out.printf("Timme %d: %.2f öre/kWh%n", i, hourlyPrices[i]);
+            }
+        } catch (Exception e) {
+            System.err.println("Fel vid hämtning av prisinformation: " + e.getMessage());
         }
     }
 }
