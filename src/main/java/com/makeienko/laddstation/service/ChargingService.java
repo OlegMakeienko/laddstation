@@ -12,5 +12,6 @@ public interface ChargingService {
     void fetchAndDisplayBaseload();
     void manageChargingSession();
     void manageChargingFrom20To80();
+    void chargeWhenLowestPrice();
 
 }

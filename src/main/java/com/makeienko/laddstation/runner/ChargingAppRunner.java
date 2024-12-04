@@ -33,7 +33,12 @@ public class ChargingAppRunner implements CommandLineRunner {
         //4. Batteriet skall laddas från 20% till 80%
         //Batteriet skall laddas när hushållets förbrukning är som lägst och total energiförbrukning
         //skall understiga 11kW (3 fas , 16 A)
-        //chargingService.manageChargingFrom20To80();
+        chargingService.manageChargingFrom20To80();
+
+        //5. Batteriet skall laddas från 20% till 80%
+        // Batteriet skall laddas när elpriset är som lägst och total energiförbrukning för inte
+        //överstiga 11 kW (3 fas, 16A)
+        //chargingService.chargeWhenLowestPrice();
 
     }
 }

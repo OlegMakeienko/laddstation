@@ -202,6 +202,79 @@ public class ChargingServiceImpl implements ChargingService {
         }
     }
 
+    public void chargeWhenLowestPrice() {
+        ChargingSession chargingSession = new ChargingSession();
+
+        try {
+            // Hämta JSON från /baseload och /priceperhour
+            String baseloadResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+            String priceResponse = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
+
+            // Deserialisera JSON till arrays av förbrukningsvärden och priser
+            ObjectMapper objectMapper = new ObjectMapper();
+            double[] hourlyBaseload = objectMapper.readValue(baseloadResponse, double[].class);
+            double[] hourlyPrices = objectMapper.readValue(priceResponse, double[].class);
+
+            // Hitta den timme när elpriset är som lägst
+            int lowestPriceHour = getLowestPriceHour(hourlyPrices); // Funktion som hittar timme med lägsta elpriset
+
+            // Hämta hushållets förbrukning vid den timmen
+            double currentHouseholdLoad = hourlyBaseload[lowestPriceHour];
+
+            // Kontrollera om den totala förbrukningen plus laddstationens effekt är mindre än 11 kW
+            double totalLoad = currentHouseholdLoad + 7.4; // Laddstationen ger 7.4 kW
+            if (totalLoad <= 11.0) {
+                System.out.println("Total load is under 11kW, and price is lowest. Starting charging process...");
+
+                // Starta laddningen (anropa /charge för att starta)
+                String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+                System.out.println("Charging started: " + startChargingResponse);
+
+                // Ladda batteriet tills det når 80%
+                while (chargingSession.getBatteryPercentage() < 80) {
+                    InfoResponse infoResponse = fetchAndDeserializeInfo(); // Hämta aktuell batteriinformation
+
+                    if (infoResponse != null) {
+                        // Hämta aktuell batteriladdning
+                        double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
+                        double batteryCapacity = infoResponse.getBatteryCapacityKWh();
+
+                        // Beräkna batteriprocent
+                        double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
+                        batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100); // Säkerställ att det är mellan 0 och 100
+
+                        chargingSession.setBatteryPercentage(batteryPercentage);
+                        System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
+
+                        // Vänta 5 sekunder innan vi kollar igen
+                        Thread.sleep(5000);
+                    }
+                }
+
+                // När batteriet når 80%, stoppa laddningen
+                String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+                System.out.println("Charging stopped: " + stopChargingResponse);
+            } else {
+                System.out.println("Total load exceeds 11kW. Charging not started.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Hantera eventuella fel
+        }
+    }
+
+    private int getLowestPriceHour(double[] prices) {
+        int lowestIndex = 0;
+        double lowestValue = prices[0];
+
+        for (int i = 1; i < prices.length; i++) {
+            if (prices[i] < lowestValue) {
+                lowestValue = prices[i];
+                lowestIndex = i;
+            }
+        }
+        return lowestIndex;
+    }
+
     private int getLowestLoadHour(double[] baseload) {
         int lowestIndex = 0; // Starta med första indexet
         double lowestValue = baseload[0]; // Starta med första värdet
