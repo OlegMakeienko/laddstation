@@ -10,5 +10,6 @@ public interface ChargingService {
     void displayInfoResponse();
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
+    void manageChargingSession();
 
 }

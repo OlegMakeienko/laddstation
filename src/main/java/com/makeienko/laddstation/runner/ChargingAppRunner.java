@@ -26,6 +26,9 @@ public class ChargingAppRunner implements CommandLineRunner {
         // 2.Hämta och visa hushållets energiförbrukning
         //chargingService.fetchAndDisplayBaseload();
 
+        //3. Skicka kommando för att starta och stoppa laddningen av EVs batteri.
+        //under laddning skall batteriets laddning avläsas och omvandlas till antal procent.
+        //chargingService.manageChargingSession();
 
     }
 }

@@ -1,6 +1,7 @@
 package com.makeienko.laddstation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.makeienko.laddstation.dto.ChargingSession;
 import com.makeienko.laddstation.dto.InfoResponse;import com.makeienko.laddstation.dto.PricePerHourResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -93,6 +94,52 @@ public class ChargingServiceImpl implements ChargingService {
 
         } catch (Exception e) {
             System.err.println("Fel vid hämtning av baseload-information: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void manageChargingSession() {
+        try {
+            // Starta laddningen (anropa /charge för att starta)
+            String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+            System.out.println("Charging started: " + startChargingResponse);
+
+            // Skapa en ChargingSession för att hålla koll på batteristatus
+            ChargingSession chargingSession = new ChargingSession();
+
+            // Börja en loop för att övervaka laddning
+            while (chargingSession.getBatteryPercentage() < 80) {
+                // Hämta batteriinformation via /info
+                InfoResponse infoResponse = fetchAndDeserializeInfo();
+
+                if (infoResponse != null) {
+
+                    // Uppdatera ChargingSession med batteriprocenten
+                    double currentBatteryLevelKWh = infoResponse.getBatteryCapacityKWh();
+                    // Hämta den aktuella batteriladdningen från infoResponse
+                    double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
+
+                    double batteryPercentage = (currentBatteryLoad / currentBatteryLevelKWh) * 100;
+                    chargingSession.setBatteryPercentage(batteryPercentage);
+
+                    // Säkerställ att batteriprocenten ligger inom intervallet 0-100
+                    batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100);
+                    chargingSession.setBatteryPercentage(batteryPercentage);
+
+                    // Skriv ut nuvarande batteriprocent
+                    System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
+                }
+
+                // Vänta innan vi kontrollerar batteristatusen igen (t.ex. vänta 5 sekunder)
+                Thread.sleep(5000); // Vänta 5 sekunder
+            }
+
+            // När batteriet når 80%, stoppa laddningen
+            String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+            System.out.println("Charging stopped: " + stopChargingResponse);
+
+        } catch (Exception e) {
+            e.printStackTrace();  // Hantera eventuella fel vid laddning
         }
     }
 }
