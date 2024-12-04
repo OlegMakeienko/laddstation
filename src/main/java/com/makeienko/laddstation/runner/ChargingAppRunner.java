@@ -20,7 +20,12 @@ public class ChargingAppRunner implements CommandLineRunner {
 
         chargingService.displayInfoResponse();
 
-        // Hämta och visa elpriser för SE3
-        chargingService.fetchAndDisplayPriceForElZone();
+        // 1.Hämta och visa elpriser för SE3
+        //chargingService.fetchAndDisplayPriceForElZone();
+
+        // 2.Hämta och visa hushållets energiförbrukning
+        //chargingService.fetchAndDisplayBaseload();
+
+
     }
 }

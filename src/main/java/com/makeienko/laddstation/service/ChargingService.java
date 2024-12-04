@@ -9,5 +9,6 @@ public interface ChargingService {
     InfoResponse fetchAndDeserializeInfo();
     void displayInfoResponse();
     void fetchAndDisplayPriceForElZone();
+    void fetchAndDisplayBaseload();
 
 }

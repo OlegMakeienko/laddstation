@@ -16,13 +16,13 @@ public class ChargingServiceImpl implements ChargingService {
 
     @Override
     public InfoResponse fetchAndDeserializeInfo() {
-        // Hämta JSON som String
-        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/info", String.class);
-
-        // Skapa en ObjectMapper för att deserialisera JSON
-        ObjectMapper objectMapper = new ObjectMapper();
-
         try {
+            // Hämta JSON som String
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/info", String.class);
+
+            // Skapa en ObjectMapper för att deserialisera JSON
+            ObjectMapper objectMapper = new ObjectMapper();
+
             // Deserialisera JSON-strängen till InfoResponse
             InfoResponse infoResponse = objectMapper.readValue(jsonResponse, InfoResponse.class);
             //System.out.println(infoResponse.toString());
@@ -67,6 +67,32 @@ public class ChargingServiceImpl implements ChargingService {
             }
         } catch (Exception e) {
             System.err.println("Fel vid hämtning av prisinformation: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void fetchAndDisplayBaseload() {
+        try {
+            // Hämta JSON från /baseload
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+
+            // Deserialisera JSON till en lista av förbrukningsvärden
+            ObjectMapper objectMapper = new ObjectMapper();
+            double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
+
+            // Skriv ut hushållets energiförbrukning per timme
+            System.out.println("Hushållets energiförbrukning (kWh per timme):");
+
+            double totalConsumption = 0;
+            for (int i = 0; i < hourlyBaseload.length; i++) {
+                System.out.printf("Timme %d: %.2f kWh%n", i, hourlyBaseload[i]);
+                totalConsumption += hourlyBaseload[i];
+            }
+            // Skriv ut total förbrukning under dygnet
+            System.out.printf("Total förbrukning för dygnet: %.2f kWh%n", totalConsumption);
+
+        } catch (Exception e) {
+            System.err.println("Fel vid hämtning av baseload-information: " + e.getMessage());
         }
     }
 }
