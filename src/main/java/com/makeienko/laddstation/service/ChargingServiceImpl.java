@@ -6,6 +6,8 @@ import com.makeienko.laddstation.dto.InfoResponse;import com.makeienko.laddstati
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Service
 public class ChargingServiceImpl implements ChargingService {
 
@@ -141,5 +143,76 @@ public class ChargingServiceImpl implements ChargingService {
         } catch (Exception e) {
             e.printStackTrace();  // Hantera eventuella fel vid laddning
         }
+    }
+
+    public void manageChargingFrom20To80() {
+        // Skapa en ChargingSession för att hålla koll på batteristatus
+        ChargingSession chargingSession = new ChargingSession();
+
+        try {
+            // Hämta JSON från /baseload
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+
+            // Deserialisera JSON till en lista av förbrukningsvärden
+            ObjectMapper objectMapper = new ObjectMapper();
+            double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
+
+            // Hitta den timme när förbrukningen är som lägst
+            int lowestLoadHour = getLowestLoadHour(hourlyBaseload);  // Funktion som hittar timme med lägst förbrukning
+
+            // Hämta den aktuella timmen för att avgöra om vi är på rätt tid att ladda
+            double currentHouseholdLoad = hourlyBaseload[lowestLoadHour];
+
+            // Kontrollera om den totala förbrukningen plus laddstationens effekt är mindre än 11 kW
+            double totalLoad = currentHouseholdLoad + 7.4; // Laddstationen ger 7.4 kW
+            if (totalLoad <= 11.0) {
+                System.out.println("Total load is under 11kW, starting charging process...");
+
+                // Starta laddningen (anropa /charge för att starta)
+                String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+                System.out.println("Charging started: " + startChargingResponse);
+
+                // Ladda batteriet tills den når 80%
+                while (chargingSession.getBatteryPercentage() < 80) {
+                    InfoResponse infoResponse = fetchAndDeserializeInfo(); // Hämta aktuell batteriinformation
+
+                    if (infoResponse != null) {
+                        // Hämta aktuell batteriladdning
+                        double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
+                        double batteryCapacity = infoResponse.getBatteryCapacityKWh();
+
+                        // Beräkna batteriprocent
+                        double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
+                        batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100); // Säkerställ att det är mellan 0 och 100
+
+                        chargingSession.setBatteryPercentage(batteryPercentage);
+                        System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
+
+                        // Vänta 5 sekunder innan vi kollar igen
+                        Thread.sleep(5000);
+                    }
+                }
+
+                // När batteriet når 80%, stoppa laddningen
+                String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
+                System.out.println("Charging stopped: " + stopChargingResponse);
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Hantera eventuella fel
+        }
+    }
+
+    private int getLowestLoadHour(double[] baseload) {
+        int lowestIndex = 0; // Starta med första indexet
+        double lowestValue = baseload[0]; // Starta med första värdet
+
+        // Iterera genom arrayen
+        for (int i = 1; i < baseload.length; i++) {
+            if (baseload[i] < lowestValue) {
+                lowestValue = baseload[i]; // Uppdatera det lägsta värdet
+                lowestIndex = i;          // Uppdatera indexet för det lägsta värdet
+            }
+        }
+        return lowestIndex; // Returnera indexet för timmen med lägst förbrukning
     }
 }

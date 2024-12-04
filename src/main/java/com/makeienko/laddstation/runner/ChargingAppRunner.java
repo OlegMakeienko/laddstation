@@ -30,5 +30,10 @@ public class ChargingAppRunner implements CommandLineRunner {
         //under laddning skall batteriets laddning avläsas och omvandlas till antal procent.
         //chargingService.manageChargingSession();
 
+        //4. Batteriet skall laddas från 20% till 80%
+        //Batteriet skall laddas när hushållets förbrukning är som lägst och total energiförbrukning
+        //skall understiga 11kW (3 fas , 16 A)
+        //chargingService.manageChargingFrom20To80();
+
     }
 }
