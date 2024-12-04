@@ -1,11 +1,9 @@
 package com.makeienko.laddstation.service;
 
-import com.makeienko.laddstation.dto.ChargingSession;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.makeienko.laddstation.dto.InfoResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Service
 public class ChargingServiceImpl implements ChargingService {
@@ -17,34 +15,38 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
-    public ChargingSession fetchData() {
-        // API-anrop för att hämta data
-        List<Double> hourlyPrices = Arrays.asList(
-                restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", Double[].class)
-        );
+    public InfoResponse fetchAndDeserializeInfo() {
+        // Hämta JSON som String
+        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/info", String.class);
 
-        List<Double> hourlyBaseload = Arrays.asList(
-                restTemplate.getForObject("http://127.0.0.1:5000/baseload", Double[].class)
-        );
+        // Skapa en ObjectMapper för att deserialisera JSON
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        double batteryPercentage = restTemplate.getForObject("http://127.0.0.1:5000/info", Double.class);
-        double chargingPower = 7.4; // Fast värde för laddstationens effekt
-
-        return new ChargingSession(hourlyPrices, hourlyBaseload, batteryPercentage, chargingPower);
+        try {
+            // Deserialisera JSON-strängen till InfoResponse
+            InfoResponse infoResponse = objectMapper.readValue(jsonResponse, InfoResponse.class);
+            //System.out.println(infoResponse.toString());
+            return infoResponse;
+        } catch (Exception e) {
+            e.printStackTrace();  // Hantera eventuella fel vid deserialisering
+            return null;
+        }
     }
 
     @Override
-    public void optimizeCharging(ChargingSession session) {
+    public void displayInfoResponse() {
+        // Använd fetchAndDeserializeInfo för att hämta InfoResponse
+        InfoResponse infoResponse = fetchAndDeserializeInfo();
 
-    }
-
-    @Override
-    public void startCharging() {
-
-    }
-
-    @Override
-    public void stopCharging() {
-
+        // Kontrollera att data hämtades korrekt
+        if (infoResponse != null) {
+            // Skriv ut objektets data i ett strukturerat format
+            System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
+            System.out.println("Base Current Load: " + infoResponse.getBaseCurrentLoad() + " kW");
+            System.out.println("Battery Capacity: " + infoResponse.getBatteryCapacityKWh() + " kWh");
+            System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
+        } else {
+            System.out.println("Failed to fetch and deserialize InfoResponse.");
+        }
     }
 }

@@ -14,4 +14,5 @@ public class ChargingSession {
     private List<Double> hourlyBaseload; // Hushållsförbrukning per timme
     private double batteryPercentage; // Nuvarande batterinivå
     private double chargingPower; // Laddstationens effekt i kW (vi har 7.4 kW)
+    private InfoResponse infoResponse; // Information om simulerad tid och batteristatistik
 }
