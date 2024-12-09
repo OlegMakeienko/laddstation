@@ -1,12 +1,13 @@
 package com.makeienko.laddstation.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.makeienko.laddstation.dto.ChargingSession;
-import com.makeienko.laddstation.dto.InfoResponse;import com.makeienko.laddstation.dto.PricePerHourResponse;
+import com.makeienko.laddstation.dto.InfoResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ChargingServiceImpl implements ChargingService {
@@ -100,192 +101,246 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
-    public void manageChargingSession() {
+    public void chargeBatteryDirect() {
+        chargeBattery();
+    }
+
+    private boolean isBatterySufficient() {
         try {
-            // Starta laddningen (anropa /charge för att starta)
-            String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-            System.out.println("Charging started: " + startChargingResponse);
+            InfoResponse infoResponse = fetchAndDeserializeInfo();
+            if (infoResponse != null) {
+                double batteryPercentage = (infoResponse.getBaseCurrentLoad() / infoResponse.getBatteryCapacityKWh()) * 100;
+                //System.out.println("Current Battery Level Before Charging: " + batteryPercentage + "%");
+                return batteryPercentage >= 80;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false; // Anta att laddning behövs om vi inte kan hämta status
+    }
 
-            // Skapa en ChargingSession för att hålla koll på batteristatus
-            ChargingSession chargingSession = new ChargingSession();
+    private void startCharging() throws Exception {
+        String response = restTemplate.postForObject(
+                "http://127.0.0.1:5000/charge",
+                Map.of("charging", "on"),
+                String.class
+        );
+        System.out.println("Charging started: " + response);
+    }
 
-            // Börja en loop för att övervaka laddning
-            while (chargingSession.getBatteryPercentage() < 80) {
-                // Hämta batteriinformation via /info
+    private void stopCharging() throws Exception {
+        String response = restTemplate.postForObject(
+                "http://127.0.0.1:5000/charge",
+                Map.of("charging", "off"),
+                String.class
+        );
+        System.out.println("Charging stopped: " + response);
+    }
+    @Override
+    public void chargingSessionOnOptimalChargingHours() {
+
+        try {
+            // Hämta optimala timmar för laddning
+            List<Double> optimalHours = findOptimalChargingHourGroundLowPrice();
+
+            while (true) {
+                // Hämta aktuell tid från servern
+                InfoResponse infoResponse = fetchAndDeserializeInfo(); // Gör ett anrop till servern
+                if (infoResponse == null) {
+                    System.out.println("Failed to fetch current time from the server. Retrying...");
+                    Thread.sleep(10000); // Vänta 10 sec och försök igen
+                    continue;
+                }
+
+                double currentHour = infoResponse.getSimTimeHour(); // Hämta simulerad timme
+
+                // Kontrollera om den aktuella timmen är en av de optimala timmarna
+                if (isOptimalHour(currentHour, optimalHours)) {
+                    System.out.println("Current hour (" + currentHour + ") is optimal for charging!");
+
+                    // Starta laddningen
+                    startCharging();
+
+                    // Kolla batterinivå innan laddning, och ladda om det behövs
+                    if (!isBatterySufficient()) {
+                        // Ladda batteriet
+                        chargeBattery();
+                    }
+
+                    // Stoppa laddningen
+                    stopCharging();
+
+                    break;
+                } else {
+                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
+                    waitUntilNextHour(infoResponse.getSimTimeMin()); // Vänta tills nästa timme
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<Double> findOptimalChargingHoursWhenConsumptionIsLow() throws JsonProcessingException {
+        List<Double> optimalHours = new ArrayList<>();
+        // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
+        // Hämta JSON som en lista
+        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Deserialisera JSON till en lista av förbrukningsvärden
+        double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
+
+        double optimalHour;
+
+        // Iterera genom varje timme för att hitta den bästa timmen för laddning
+        for (int hour = 0; hour < hourlyBaseload.length; hour++) {
+            // Kontrollera om totala förbrukningen (inklusive laddstation) är under 11 kW
+            double totalLoad = hourlyBaseload[hour] + 7.4; // Laddstationens effekt + hushållsförbrukning
+            if (totalLoad <= 11.0) {
+                // Logga timmen om den är optimal för laddning
+                System.out.println("Hour " + hour + " is optimal for charging with total load: "
+                        + String.format("%.2f", totalLoad) + " kW");
+
+                optimalHour = hour;
+                optimalHours.add(optimalHour);
+            }
+        }
+        return optimalHours;
+    }
+
+    private List<Double> findOptimalChargingHourGroundLowPrice() throws JsonProcessingException {
+        List<Double> optimalHours = new ArrayList<>();
+        // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
+        // Hämta JSON som en lista
+        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
+        String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // Deserialisera JSON till en lista av priser
+        double[] hourlyPrices = objectMapper.readValue(jsonResponse1, double[].class);
+        // Deserialisera JSON till en lista av förbrukningsvärden
+        double[] hourlyBaseload = objectMapper.readValue(jsonResponse2, double[].class);
+
+        double optimalHour;
+        double lowestCost = Double.MAX_VALUE;
+
+        // Iterera genom varje timme för att hitta den bästa timmen för laddning
+        for (int hour = 0; hour < hourlyBaseload.length; hour++) {
+            // Kontrollera om totala förbrukningen (inklusive laddstation) är under 11 kW
+            double totalLoad = hourlyBaseload[hour] + 7.4; // Laddstationens effekt + hushållsförbrukning
+            if (totalLoad <= 11.0) {
+                // Logga timmen om den är optimal för laddning
+                System.out.println("Hour " + hour + " is optimal for charging with total load: "
+                        + String.format("%.2f", totalLoad) + " kW");
+                // Logga priset för den optimala timmen
+                System.out.println("Price for Hour :" + String.format("%.2f", hourlyPrices[hour]) + " per kWh");
+
+                optimalHour = hour;
+
+                // Beräkna kostnaden för denna timme
+                double cost = hourlyPrices[hour];
+                if (cost < lowestCost) {
+                    lowestCost = cost;
+                    optimalHours.add(optimalHour);
+                }
+            }
+        }
+
+        return optimalHours;
+    }
+
+    private void chargeBattery() {
+        ChargingSession chargingSession = new ChargingSession();
+        chargingSession.setChargingPower(7.4); // Laddstationens effekt i kW
+
+            try {
+                // Hämta och logga batterinivå från servern
                 InfoResponse infoResponse = fetchAndDeserializeInfo();
-
                 if (infoResponse != null) {
+                    updateBatteryStatus(chargingSession, infoResponse);
 
-                    // Uppdatera ChargingSession med batteriprocenten
-                    double currentBatteryLevelKWh = infoResponse.getBatteryCapacityKWh();
-                    // Hämta den aktuella batteriladdningen från infoResponse
-                    double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
+                    while (chargingSession.getBatteryPercentage() < 80) {
+                        // Energi som laddas per iteration (15 minuter simulerad tid)
+                        double energyAddedPerIteration = 7.4 * 15 / 60; // 1.85 kWh
 
-                    double batteryPercentage = (currentBatteryLoad / currentBatteryLevelKWh) * 100;
-                    chargingSession.setBatteryPercentage(batteryPercentage);
+                        // Uppdatera batterinivån
+                        chargingSession.updateBatteryLoad(energyAddedPerIteration);
 
-                    // Säkerställ att batteriprocenten ligger inom intervallet 0-100
-                    batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100);
-                    chargingSession.setBatteryPercentage(batteryPercentage);
+                        // Logga nuvarande status
+                        System.out.println("Charging: currently battery Level: " + chargingSession.getBatteryPercentage() + "%");
 
-                    // Skriv ut nuvarande batteriprocent
-                    System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
-                }
-
-                // Vänta innan vi kontrollerar batteristatusen igen (t.ex. vänta 5 sekunder)
-                Thread.sleep(5000); // Vänta 5 sekunder
-            }
-
-            // När batteriet når 80%, stoppa laddningen
-            String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-            System.out.println("Charging stopped: " + stopChargingResponse);
-
-        } catch (Exception e) {
-            e.printStackTrace();  // Hantera eventuella fel vid laddning
-        }
-    }
-
-    public void manageChargingFrom20To80() {
-        // Skapa en ChargingSession för att hålla koll på batteristatus
-        ChargingSession chargingSession = new ChargingSession();
-
-        try {
-            // Hämta JSON från /baseload
-            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
-
-            // Deserialisera JSON till en lista av förbrukningsvärden
-            ObjectMapper objectMapper = new ObjectMapper();
-            double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
-
-            // Hitta den timme när förbrukningen är som lägst
-            int lowestLoadHour = getLowestLoadHour(hourlyBaseload);  // Funktion som hittar timme med lägst förbrukning
-
-            // Hämta den aktuella timmen för att avgöra om vi är på rätt tid att ladda
-            double currentHouseholdLoad = hourlyBaseload[lowestLoadHour];
-
-            // Kontrollera om den totala förbrukningen plus laddstationens effekt är mindre än 11 kW
-            double totalLoad = currentHouseholdLoad + 7.4; // Laddstationen ger 7.4 kW
-            if (totalLoad <= 11.0) {
-                System.out.println("Total load is under 11kW, starting charging process...");
-
-                // Starta laddningen (anropa /charge för att starta)
-                String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-                System.out.println("Charging started: " + startChargingResponse);
-
-                // Ladda batteriet tills den når 80%
-                while (chargingSession.getBatteryPercentage() < 80) {
-                    InfoResponse infoResponse = fetchAndDeserializeInfo(); // Hämta aktuell batteriinformation
-
-                    if (infoResponse != null) {
-                        // Hämta aktuell batteriladdning
-                        double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
-                        double batteryCapacity = infoResponse.getBatteryCapacityKWh();
-
-                        // Beräkna batteriprocent
-                        double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
-                        batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100); // Säkerställ att det är mellan 0 och 100
-
-                        chargingSession.setBatteryPercentage(batteryPercentage);
-                        System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
-
-                        // Vänta 5 sekunder innan vi kollar igen
-                        Thread.sleep(5000);
+                        // Vänta 1 verklig sekund
+                        Thread.sleep(1000);
                     }
                 }
-
-                // När batteriet når 80%, stoppa laddningen
-                String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-                System.out.println("Charging stopped: " + stopChargingResponse);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace(); // Hantera eventuella fel
         }
+
+    private void updateBatteryStatus(ChargingSession chargingSession, InfoResponse infoResponse) {
+        double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
+        double batteryCapacity = infoResponse.getBatteryCapacityKWh();
+
+        chargingSession.setCurrentLoad(currentBatteryLoad);
+        chargingSession.setBatteryCapacity(batteryCapacity);
+
+        // Beräkna och uppdatera batteriprocent
+        double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
+        batteryPercentage = Math.min(batteryPercentage, 100); // Begränsa till max 100%
+        chargingSession.setBatteryPercentage(batteryPercentage);
+
+        // Logga information
+        System.out.println("Battery Capacity (kWh): " + batteryCapacity);
+        System.out.println("Current Load (kWh): " + currentBatteryLoad);
+        System.out.println("Current battery Level: " + batteryPercentage + "%");
     }
 
-    public void chargeWhenLowestPrice() {
-        ChargingSession chargingSession = new ChargingSession();
-
+    private void dischargeBatteryTo20() {
         try {
-            // Hämta JSON från /baseload och /priceperhour
-            String baseloadResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
-            String priceResponse = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
-
-            // Deserialisera JSON till arrays av förbrukningsvärden och priser
-            ObjectMapper objectMapper = new ObjectMapper();
-            double[] hourlyBaseload = objectMapper.readValue(baseloadResponse, double[].class);
-            double[] hourlyPrices = objectMapper.readValue(priceResponse, double[].class);
-
-            // Hitta den timme när elpriset är som lägst
-            int lowestPriceHour = getLowestPriceHour(hourlyPrices); // Funktion som hittar timme med lägsta elpriset
-
-            // Hämta hushållets förbrukning vid den timmen
-            double currentHouseholdLoad = hourlyBaseload[lowestPriceHour];
-
-            // Kontrollera om den totala förbrukningen plus laddstationens effekt är mindre än 11 kW
-            double totalLoad = currentHouseholdLoad + 7.4; // Laddstationen ger 7.4 kW
-            if (totalLoad <= 11.0) {
-                System.out.println("Total load is under 11kW, and price is lowest. Starting charging process...");
-
-                // Starta laddningen (anropa /charge för att starta)
-                String startChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-                System.out.println("Charging started: " + startChargingResponse);
-
-                // Ladda batteriet tills det når 80%
-                while (chargingSession.getBatteryPercentage() < 80) {
-                    InfoResponse infoResponse = fetchAndDeserializeInfo(); // Hämta aktuell batteriinformation
-
-                    if (infoResponse != null) {
-                        // Hämta aktuell batteriladdning
-                        double currentBatteryLoad = infoResponse.getBaseCurrentLoad();
-                        double batteryCapacity = infoResponse.getBatteryCapacityKWh();
-
-                        // Beräkna batteriprocent
-                        double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
-                        batteryPercentage = Math.min(Math.max(batteryPercentage, 0), 100); // Säkerställ att det är mellan 0 och 100
-
-                        chargingSession.setBatteryPercentage(batteryPercentage);
-                        System.out.println("Current battery level: " + chargingSession.getBatteryPercentage() + "%");
-
-                        // Vänta 5 sekunder innan vi kollar igen
-                        Thread.sleep(5000);
-                    }
-                }
-
-                // När batteriet når 80%, stoppa laddningen
-                String stopChargingResponse = restTemplate.postForObject("http://127.0.0.1:5000/charge", null, String.class);
-                System.out.println("Charging stopped: " + stopChargingResponse);
-            } else {
-                System.out.println("Total load exceeds 11kW. Charging not started.");
-            }
+            String response = restTemplate.postForObject(
+                    "http://127.0.0.1:5000/discharge",
+                    Map.of("level", "20"), // Skicka en begäran med en nivå på 20%
+                    String.class
+            );
+            System.out.println("Battery discharged to 20%: " + response);
         } catch (Exception e) {
-            e.printStackTrace(); // Hantera eventuella fel
+            e.printStackTrace();
         }
     }
 
-    private int getLowestPriceHour(double[] prices) {
-        int lowestIndex = 0;
-        double lowestValue = prices[0];
-
-        for (int i = 1; i < prices.length; i++) {
-            if (prices[i] < lowestValue) {
-                lowestValue = prices[i];
-                lowestIndex = i;
+    private boolean isOptimalHour(double currentHour, List<Double> optimalHours) {
+        for (double hour : optimalHours) {
+            if (currentHour == hour) {
+                return true;
             }
         }
-        return lowestIndex;
+        return false;
     }
 
-    private int getLowestLoadHour(double[] baseload) {
-        int lowestIndex = 0; // Starta med första indexet
-        double lowestValue = baseload[0]; // Starta med första värdet
+    private void waitUntilNextHour(double currentMinute) throws InterruptedException {
+        double minutesToWait = 60 - currentMinute; // Beräkna minuter kvar till nästa timme
+        double simulatedTimeInSeconds = minutesToWait / 15; // Konvertera minuter till simulerad tid i sekunder
+        System.out.println("Waiting for " + minutesToWait + " simulated minutes ("
+                + simulatedTimeInSeconds + " real seconds) until the next hour...");
+        Thread.sleep((long) (simulatedTimeInSeconds * 1000L)); // Vänta den beräknade tiden i verkliga sekunder
+    }
 
-        // Iterera genom arrayen
-        for (int i = 1; i < baseload.length; i++) {
-            if (baseload[i] < lowestValue) {
-                lowestValue = baseload[i]; // Uppdatera det lägsta värdet
-                lowestIndex = i;          // Uppdatera indexet för det lägsta värdet
+    private Double findNextOptimalChargingHour(int currentHour, List<Double> optimalHours) {
+        // Sortera listan av optimala timmar (om den inte redan är sorterad)
+        Collections.sort(optimalHours);
+
+        // Leta efter den första timmen i listan som är större än currentHour
+        for (Double hour : optimalHours) {
+            if (hour > currentHour) {
+                return hour; // Returnera nästa optimala timme
             }
         }
-        return lowestIndex; // Returnera indexet för timmen med lägst förbrukning
+
+        // Om ingen timme är större än currentHour, återgå till den första timmen (cirkulärt)
+        return optimalHours.get(0);
     }
 }

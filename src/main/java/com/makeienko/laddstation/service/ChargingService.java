@@ -10,8 +10,6 @@ public interface ChargingService {
     void displayInfoResponse();
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
-    void manageChargingSession();
-    void manageChargingFrom20To80();
-    void chargeWhenLowestPrice();
-
+    void chargeBatteryDirect();
+    void chargingSessionOnOptimalChargingHours();
 }
