@@ -11,5 +11,7 @@ public interface ChargingService {
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
     void chargeBatteryDirect();
+    void chargingSessionOnOptimalChargingHoursPrice();
     void chargingSessionOnOptimalChargingHours();
+
 }

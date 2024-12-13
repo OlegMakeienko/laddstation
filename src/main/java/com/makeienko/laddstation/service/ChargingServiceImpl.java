@@ -137,11 +137,56 @@ public class ChargingServiceImpl implements ChargingService {
         System.out.println("Charging stopped: " + response);
     }
     @Override
-    public void chargingSessionOnOptimalChargingHours() {
+    public void chargingSessionOnOptimalChargingHoursPrice() {
 
         try {
             // Hämta optimala timmar för laddning
             List<Double> optimalHours = findOptimalChargingHourGroundLowPrice();
+
+            while (true) {
+                // Hämta aktuell tid från servern
+                InfoResponse infoResponse = fetchAndDeserializeInfo(); // Gör ett anrop till servern
+                if (infoResponse == null) {
+                    System.out.println("Failed to fetch current time from the server. Retrying...");
+                    Thread.sleep(10000); // Vänta 10 sec och försök igen
+                    continue;
+                }
+
+                double currentHour = infoResponse.getSimTimeHour(); // Hämta simulerad timme
+
+                // Kontrollera om den aktuella timmen är en av de optimala timmarna
+                if (isOptimalHour(currentHour, optimalHours)) {
+                    System.out.println("Current hour (" + currentHour + ") is optimal for charging!");
+
+                    // Starta laddningen
+                    startCharging();
+
+                    // Kolla batterinivå innan laddning, och ladda om det behövs
+                    if (!isBatterySufficient()) {
+                        // Ladda batteriet
+                        chargeBattery();
+                    }
+
+                    // Stoppa laddningen
+                    stopCharging();
+
+                    break;
+                } else {
+                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
+                    waitUntilNextHour(infoResponse.getSimTimeMin()); // Vänta tills nästa timme
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void chargingSessionOnOptimalChargingHours() {
+
+        try {
+            // Hämta optimala timmar för laddning
+            List<Double> optimalHours = findOptimalChargingHoursWhenConsumptionIsLow();
 
             while (true) {
                 // Hämta aktuell tid från servern

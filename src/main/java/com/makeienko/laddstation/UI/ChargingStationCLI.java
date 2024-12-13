@@ -26,9 +26,11 @@ public class ChargingStationCLI {
             System.out.println("2. Visa hushållets energiförbrukning");
             System.out.println("3. Visa elpriser per timme");
             System.out.println("4. Starta laddning direkt");
-            System.out.println("5. Starta laddning när när hushållets förbrukning är som lägst och total energiförbrukning" +
+            System.out.println("5. Starta laddning när när price år lägst och total energiförbrukning" +
                     "skall understiga 11kW");
-            System.out.println("6. Avsluta");
+            System.out.println("6. Starta laddning när när hushållets förbrukning är som lägst och total energiförbrukning" +
+                    "skall understiga 11kW");
+            System.out.println("7. Avsluta");
             System.out.print("Välj ett alternativ: ");
 
             int choice = scanner.nextInt();
@@ -47,9 +49,12 @@ public class ChargingStationCLI {
                     chargingService.chargeBatteryDirect();
                     break;
                 case 5:
-                    chargingService.chargingSessionOnOptimalChargingHours();
+                    chargingService.chargingSessionOnOptimalChargingHoursPrice();
                     break;
                 case 6:
+                    chargingService.chargingSessionOnOptimalChargingHours();
+                    break;
+                case 7:
                     System.out.println("Avslutar programmet...");
                     running = false;
                     break;
