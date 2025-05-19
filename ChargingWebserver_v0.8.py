@@ -94,7 +94,7 @@ def station_info():
                                 "battery_capacity_kWh":ev_batt_capacity_kWh, \
                                 "ev_battery_charge_start_stopp":ev_battery_charge_start_stopp
                               }
-        return (json.dumps(charging_station_info),{"Access-Control-Allow-orogin":"*"})
+        return (json.dumps(charging_station_info),{"Access-Control-Allow-Origin":"*"})
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
@@ -195,4 +195,4 @@ increment_sum_thread.start()
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

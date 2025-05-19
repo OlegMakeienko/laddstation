@@ -4,7 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.makeienko.laddstation.dto.ChargingSession;
 import com.makeienko.laddstation.dto.InfoResponse;
+import com.makeienko.laddstation.exception.ChargingServiceException;
+import com.makeienko.laddstation.service.strategy.OptimalHoursStrategy;
+import com.makeienko.laddstation.service.strategy.PriceBasedStrategy;
+import com.makeienko.laddstation.service.strategy.ConsumptionBasedStrategy;
+
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -21,19 +27,27 @@ public class ChargingServiceImpl implements ChargingService {
     @Override
     public InfoResponse fetchAndDeserializeInfo() {
         try {
-            // Hämta JSON som String
-            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/info", String.class);
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/info", String.class);
+            if (jsonResponse == null) {
+                throw new ChargingServiceException("Received null response from info endpoint");
+            }
 
-            // Skapa en ObjectMapper för att deserialisera JSON
             ObjectMapper objectMapper = new ObjectMapper();
 
             // Deserialisera JSON-strängen till InfoResponse
             InfoResponse infoResponse = objectMapper.readValue(jsonResponse, InfoResponse.class);
-            //System.out.println(infoResponse.toString());
+            
+            if (infoResponse == null) {
+                throw new ChargingServiceException("Failed to deserialize response to InfoResponse object");
+            }
+            
             return infoResponse;
+        } catch (RestClientException e) {
+            throw new ChargingServiceException("Failed to fetch data from info endpoint: " + e.getMessage(), e);
+        } catch (JsonProcessingException e) {
+            throw new ChargingServiceException("Failed to process JSON response: " + e.getMessage(), e);
         } catch (Exception e) {
-            e.printStackTrace();  // Hantera eventuella fel vid deserialisering
-            return null;
+            throw new ChargingServiceException("Unexpected error while fetching info: " + e.getMessage(), e);
         }
     }
 
@@ -58,7 +72,7 @@ public class ChargingServiceImpl implements ChargingService {
     public void fetchAndDisplayPriceForElZone() {
         try {
             // Hämta JSON som en lista från /priceperhour
-            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
 
             // Deserialisera JSON till en lista av priser
             ObjectMapper objectMapper = new ObjectMapper();
@@ -78,7 +92,7 @@ public class ChargingServiceImpl implements ChargingService {
     public void fetchAndDisplayBaseload() {
         try {
             // Hämta JSON från /baseload
-            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+            String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
             // Deserialisera JSON till en lista av förbrukningsvärden
             ObjectMapper objectMapper = new ObjectMapper();
@@ -121,7 +135,7 @@ public class ChargingServiceImpl implements ChargingService {
 
     private void startCharging() throws Exception {
         String response = restTemplate.postForObject(
-                "http://127.0.0.1:5000/charge",
+                "http://127.0.0.1:5001/charge",
                 Map.of("charging", "on"),
                 String.class
         );
@@ -130,7 +144,7 @@ public class ChargingServiceImpl implements ChargingService {
 
     private void stopCharging() throws Exception {
         String response = restTemplate.postForObject(
-                "http://127.0.0.1:5000/charge",
+                "http://127.0.0.1:5001/charge",
                 Map.of("charging", "off"),
                 String.class
         );
@@ -138,99 +152,21 @@ public class ChargingServiceImpl implements ChargingService {
     }
     @Override
     public void chargingSessionOnOptimalChargingHoursPrice() {
-
-        try {
-            // Hämta optimala timmar för laddning
-            List<Double> optimalHours = findOptimalChargingHourGroundLowPrice();
-
-            while (true) {
-                // Hämta aktuell tid från servern
-                InfoResponse infoResponse = fetchAndDeserializeInfo(); // Gör ett anrop till servern
-                if (infoResponse == null) {
-                    System.out.println("Failed to fetch current time from the server. Retrying...");
-                    Thread.sleep(10000); // Vänta 10 sec och försök igen
-                    continue;
-                }
-
-                double currentHour = infoResponse.getSimTimeHour(); // Hämta simulerad timme
-
-                // Kontrollera om den aktuella timmen är en av de optimala timmarna
-                if (isOptimalHour(currentHour, optimalHours)) {
-                    System.out.println("Current hour (" + currentHour + ") is optimal for charging!");
-
-                    // Starta laddningen
-                    startCharging();
-
-                    // Kolla batterinivå innan laddning, och ladda om det behövs
-                    if (!isBatterySufficient()) {
-                        // Ladda batteriet
-                        chargeBattery();
-                    }
-
-                    // Stoppa laddningen
-                    stopCharging();
-
-                    break;
-                } else {
-                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
-                    waitUntilNextHour(infoResponse.getSimTimeMin()); // Vänta tills nästa timme
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        OptimalHoursStrategy strategy = new PriceBasedStrategy(restTemplate);
+        performChargingSessionWithStrategy(strategy);
     }
 
     @Override
     public void chargingSessionOnOptimalChargingHours() {
-
-        try {
-            // Hämta optimala timmar för laddning
-            List<Double> optimalHours = findOptimalChargingHoursWhenConsumptionIsLow();
-
-            while (true) {
-                // Hämta aktuell tid från servern
-                InfoResponse infoResponse = fetchAndDeserializeInfo(); // Gör ett anrop till servern
-                if (infoResponse == null) {
-                    System.out.println("Failed to fetch current time from the server. Retrying...");
-                    Thread.sleep(10000); // Vänta 10 sec och försök igen
-                    continue;
-                }
-
-                double currentHour = infoResponse.getSimTimeHour(); // Hämta simulerad timme
-
-                // Kontrollera om den aktuella timmen är en av de optimala timmarna
-                if (isOptimalHour(currentHour, optimalHours)) {
-                    System.out.println("Current hour (" + currentHour + ") is optimal for charging!");
-
-                    // Starta laddningen
-                    startCharging();
-
-                    // Kolla batterinivå innan laddning, och ladda om det behövs
-                    if (!isBatterySufficient()) {
-                        // Ladda batteriet
-                        chargeBattery();
-                    }
-
-                    // Stoppa laddningen
-                    stopCharging();
-
-                    break;
-                } else {
-                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
-                    waitUntilNextHour(infoResponse.getSimTimeMin()); // Vänta tills nästa timme
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        OptimalHoursStrategy strategy = new ConsumptionBasedStrategy(restTemplate);
+        performChargingSessionWithStrategy(strategy);
     }
 
     private List<Double> findOptimalChargingHoursWhenConsumptionIsLow() throws JsonProcessingException {
         List<Double> optimalHours = new ArrayList<>();
         // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
         // Hämta JSON som en lista
-        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -259,8 +195,8 @@ public class ChargingServiceImpl implements ChargingService {
         List<Double> optimalHours = new ArrayList<>();
         // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
         // Hämta JSON som en lista
-        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5000/priceperhour", String.class);
-        String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5000/baseload", String.class);
+        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
+        String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -347,13 +283,13 @@ public class ChargingServiceImpl implements ChargingService {
     private void dischargeBatteryTo20() {
         try {
             String response = restTemplate.postForObject(
-                    "http://127.0.0.1:5000/discharge",
-                    Map.of("level", "20"), // Skicka en begäran med en nivå på 20%
+                    "http://127.0.0.1:5001/discharge",
+                    Map.of("discharging", "on"),
                     String.class
             );
-            System.out.println("Battery discharged to 20%: " + response);
+            System.out.println("Battery reset to 20%: " + response);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error resetting battery: " + e.getMessage());
         }
     }
 
@@ -387,5 +323,40 @@ public class ChargingServiceImpl implements ChargingService {
 
         // Om ingen timme är större än currentHour, återgå till den första timmen (cirkulärt)
         return optimalHours.get(0);
+    }
+
+    @Override
+    public void performChargingSessionWithStrategy(OptimalHoursStrategy strategy) {
+        try {
+            List<Double> optimalHours = strategy.findOptimalHours();
+
+            while (true) {
+                InfoResponse infoResponse = fetchAndDeserializeInfo();
+                if(infoResponse == null) {
+                    System.out.println("Failed to fetch current time from the server. Retrying...");
+                    Thread.sleep(10000);
+                    continue;
+                }
+
+                double currentHour = infoResponse.getSimTimeHour();
+
+                if(isOptimalHour(currentHour, optimalHours)) {
+                    System.out.println("Current hour (" + currentHour + ") is optimal for charging");
+                    startCharging();
+
+                    if (!isBatterySufficient()) {
+                        chargeBattery();
+                    }
+
+                    stopCharging();
+                    break;
+                } else {
+                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
+                    waitUntilNextHour(infoResponse.getSimTimeMin());
+                }
+            }
+        } catch (Exception e) {
+            throw new ChargingServiceException("Error during charging session", e);
+        }
     }
 }
