@@ -19,6 +19,7 @@ import java.util.*;
 public class ChargingServiceImpl implements ChargingService {
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChargingServiceImpl(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -31,8 +32,6 @@ public class ChargingServiceImpl implements ChargingService {
             if (jsonResponse == null) {
                 throw new ChargingServiceException("Received null response from info endpoint");
             }
-
-            ObjectMapper objectMapper = new ObjectMapper();
 
             // Deserialisera JSON-strängen till InfoResponse
             InfoResponse infoResponse = objectMapper.readValue(jsonResponse, InfoResponse.class);
@@ -75,7 +74,6 @@ public class ChargingServiceImpl implements ChargingService {
             String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
 
             // Deserialisera JSON till en lista av priser
-            ObjectMapper objectMapper = new ObjectMapper();
             double[] hourlyPrices = objectMapper.readValue(jsonResponse, double[].class);
 
             // Skriv ut priserna för varje timme
@@ -95,7 +93,6 @@ public class ChargingServiceImpl implements ChargingService {
             String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
             // Deserialisera JSON till en lista av förbrukningsvärden
-            ObjectMapper objectMapper = new ObjectMapper();
             double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
 
             // Skriv ut hushållets energiförbrukning per timme
@@ -168,8 +165,6 @@ public class ChargingServiceImpl implements ChargingService {
         // Hämta JSON som en lista
         String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
-        ObjectMapper objectMapper = new ObjectMapper();
-
         // Deserialisera JSON till en lista av förbrukningsvärden
         double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
 
@@ -197,8 +192,6 @@ public class ChargingServiceImpl implements ChargingService {
         // Hämta JSON som en lista
         String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
         String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
-
-        ObjectMapper objectMapper = new ObjectMapper();
 
         // Deserialisera JSON till en lista av priser
         double[] hourlyPrices = objectMapper.readValue(jsonResponse1, double[].class);
