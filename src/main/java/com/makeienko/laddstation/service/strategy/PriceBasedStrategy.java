@@ -22,7 +22,7 @@ public class PriceBasedStrategy implements OptimalHoursStrategy {
 
         //Laddstationens effekt + hushållförbrukning är mindre än 11 kW
         //Hämta JSON som en lista
-        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/price", String.class);
+        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
         String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
 
         ObjectMapper objectMapper = new ObjectMapper();
