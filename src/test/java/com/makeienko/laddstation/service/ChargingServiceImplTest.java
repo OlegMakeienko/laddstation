@@ -3,14 +3,15 @@ package com.makeienko.laddstation.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,5 +129,18 @@ public class ChargingServiceImplTest {
     @Test
     void testPerformChargingSessionWithStrategy() {
 
+    }
+
+    @Test
+    void testIsOptimalHour() {
+        List<Double> optimalHours = Arrays.asList(1.0, 5.0, 23.0);
+        
+        // Test positiva fall
+        assertTrue(chargingService.isOptimalHour(1.0, optimalHours));
+        assertTrue(chargingService.isOptimalHour(5.0, optimalHours));
+        
+        // Test negativa fall
+        assertFalse(chargingService.isOptimalHour(2.0, optimalHours));
+        assertFalse(chargingService.isOptimalHour(0.0, optimalHours));
     }
 }

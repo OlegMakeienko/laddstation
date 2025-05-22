@@ -215,7 +215,7 @@ public class ChargingServiceImpl implements ChargingService {
         }
     }
 
-    private boolean isOptimalHour(double currentHour, List<Double> optimalHours) {
+    boolean isOptimalHour(double currentHour, List<Double> optimalHours) {
         for (double hour : optimalHours) {
             if (currentHour == hour) {
                 return true;
