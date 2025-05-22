@@ -153,79 +153,6 @@ public class ChargingServiceImpl implements ChargingService {
         performChargingSessionWithStrategy(strategy);
     }
 
-    @Override
-    public void chargingSessionOnOptimalChargingHours() {
-        OptimalHoursStrategy strategy = new ConsumptionBasedStrategy(restTemplate);
-        performChargingSessionWithStrategy(strategy);
-    }
-
-    private List<Double> findOptimalChargingHoursWhenConsumptionIsLow() throws JsonProcessingException {
-        List<Double> optimalHours = new ArrayList<>();
-        // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
-        // Hämta JSON som en lista
-        String jsonResponse = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
-
-        // Deserialisera JSON till en lista av förbrukningsvärden
-        double[] hourlyBaseload = objectMapper.readValue(jsonResponse, double[].class);
-
-        double optimalHour;
-
-        // Iterera genom varje timme för att hitta den bästa timmen för laddning
-        for (int hour = 0; hour < hourlyBaseload.length; hour++) {
-            // Kontrollera om totala förbrukningen (inklusive laddstation) är under 11 kW
-            double totalLoad = hourlyBaseload[hour] + 7.4; // Laddstationens effekt + hushållsförbrukning
-            if (totalLoad <= 11.0) {
-                // Logga timmen om den är optimal för laddning
-                System.out.println("Hour " + hour + " is optimal for charging with total load: "
-                        + String.format("%.2f", totalLoad) + " kW");
-
-                optimalHour = hour;
-                optimalHours.add(optimalHour);
-            }
-        }
-        return optimalHours;
-    }
-
-    private List<Double> findOptimalChargingHourGroundLowPrice() throws JsonProcessingException {
-        List<Double> optimalHours = new ArrayList<>();
-        // Laddstationens effekt + hushållsförbrukning mindre än 11 kW
-        // Hämta JSON som en lista
-        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
-        String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
-
-        // Deserialisera JSON till en lista av priser
-        double[] hourlyPrices = objectMapper.readValue(jsonResponse1, double[].class);
-        // Deserialisera JSON till en lista av förbrukningsvärden
-        double[] hourlyBaseload = objectMapper.readValue(jsonResponse2, double[].class);
-
-        double optimalHour;
-        double lowestCost = Double.MAX_VALUE;
-
-        // Iterera genom varje timme för att hitta den bästa timmen för laddning
-        for (int hour = 0; hour < hourlyBaseload.length; hour++) {
-            // Kontrollera om totala förbrukningen (inklusive laddstation) är under 11 kW
-            double totalLoad = hourlyBaseload[hour] + 7.4; // Laddstationens effekt + hushållsförbrukning
-            if (totalLoad <= 11.0) {
-                // Logga timmen om den är optimal för laddning
-                System.out.println("Hour " + hour + " is optimal for charging with total load: "
-                        + String.format("%.2f", totalLoad) + " kW");
-                // Logga priset för den optimala timmen
-                System.out.println("Price for Hour :" + String.format("%.2f", hourlyPrices[hour]) + " per kWh");
-
-                optimalHour = hour;
-
-                // Beräkna kostnaden för denna timme
-                double cost = hourlyPrices[hour];
-                if (cost < lowestCost) {
-                    lowestCost = cost;
-                    optimalHours.add(optimalHour);
-                }
-            }
-        }
-
-        return optimalHours;
-    }
-
     private void chargeBattery() {
         ChargingSession chargingSession = new ChargingSession();
         chargingSession.setChargingPower(7.4); // Laddstationens effekt i kW
@@ -265,6 +192,8 @@ public class ChargingServiceImpl implements ChargingService {
         // Beräkna och uppdatera batteriprocent
         double batteryPercentage = (currentBatteryLoad / batteryCapacity) * 100;
         batteryPercentage = Math.min(batteryPercentage, 100); // Begränsa till max 100%
+        //allrunda till 1 decimail
+        batteryPercentage = Math.round(batteryPercentage * 10.0) / 10.0;
         chargingSession.setBatteryPercentage(batteryPercentage);
 
         // Logga information
@@ -316,6 +245,109 @@ public class ChargingServiceImpl implements ChargingService {
 
         // Om ingen timme är större än currentHour, återgå till den första timmen (cirkulärt)
         return optimalHours.get(0);
+    }
+
+    @Override
+    public void chargingSessionOnOptimalChargingHours() {
+        try {
+            //Skapa strategi för att hitta optimala timmar
+            OptimalHoursStrategy strategy = new ConsumptionBasedStrategy(restTemplate);
+            List<Double> optimalHours = strategy.findOptimalHours();
+
+            boolean isCharging = false;
+            boolean targetReached = false;
+
+            System.out.println("Starting smart charging sessioon with consumption-based optimization");
+            System.out.println("Optimal hours for charging: " + optimalHours);
+
+            while (!targetReached) {
+                InfoResponse infoResponse = fetchAndDeserializeInfo();
+                if (infoResponse == null) {
+                    System.out.println("Faile to fetch information. Retrying in 10 sec...");
+                    Thread.sleep(10000);
+                    continue;
+                }
+
+                double currentHour = infoResponse.getSimTimeHour();
+                double currentMinute = infoResponse.getSimTimeMin(); // Needed for waitUntilNextHour
+                boolean isCurrentHourOptimal = isOptimalHour(currentHour, optimalHours);
+
+                //Kontrollera om vi har nått målladdningsnivå (ca 80%)
+                if (isBatterySufficient()) {
+                    if (isCharging) {
+                        System.out.println("Battery reached target level (>=80%) while charging. Stopping charging.");
+                        stopCharging();
+                        isCharging = false;
+                    } else {
+                        System.out.println("Battery already at target level (>=80%). No charging needed.");
+                    }
+                    System.out.println("Charging complete or not needed.");
+                    targetReached = true;
+                    continue; // Exit the while loop
+                }
+
+                //Hantera ladning baserat på om timmen är optimal
+                if (isCurrentHourOptimal) {
+                    if (!isCharging) {
+                        System.out.println("Optimal hour (" + currentHour + ") started. Starting charging.");
+                        startCharging();
+                        isCharging = true;
+                    }
+                    // Whether we just started or were already charging, charge for a bit
+                    System.out.println("Charging during optimal hour " + currentHour + ".");
+                    chargeBatteryPartial(); // This method contains a sleep corresponding to its charge duration (15 sim minutes)
+                } else { // Current hour is NOT optimal
+                    if (isCharging) {
+                        // Attempt to get the previous hour for logging, handling wrap-around from 0 to 23
+                        double previousHour = (currentHour == 0) ? 23 : currentHour -1;
+                        System.out.println("Optimal hour (" + previousHour + ") ended. Current non-optimal hour: " + currentHour + ". Stopping charging.");
+                        stopCharging();
+                        isCharging = false;
+                    }
+                    // Whether we just stopped or were already waiting, wait until the next hour
+                    System.out.println("Current hour (" + currentHour + ") is not optimal. Waiting until the next simulated hour begins.");
+                    waitUntilNextHour(currentMinute);
+                }
+            } // end while
+        } catch (Exception e) {
+            // Ensure InterruptedException is handled correctly if thrown by Thread.sleep or waitUntilNextHour
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt(); // Preserve interrupt status
+                System.err.println("Charging session was interrupted.");
+            }
+            throw new ChargingServiceException("Error in charging session with consumption strategy.", e);
+        }
+    }
+
+    //Hjälpmetodd för att beräkna tid till nästa optimala timme
+    private double calculateHoursToWait(double currentHour, double nextOptimalHour) {
+        if (nextOptimalHour > currentHour) {
+            return nextOptimalHour - currentHour;
+        } else {
+            //om nästa timmen kommer på nästa dag
+            return 24 - currentHour + nextOptimalHour;
+        }
+    }
+
+    //laddar en del batteriet och returerar när en mindre laddning är klar
+    private void chargeBatteryPartial() {
+        try {
+            //Kortare laddningtid för mer frekvent koontroll
+            ChargingSession session = new ChargingSession();
+            session.setChargingPower(7.4);
+
+            InfoResponse info = fetchAndDeserializeInfo();
+            updateBatteryStatus(session, info);
+
+            //Ladda bara en kort period (motsvarande cirka 10-15 min simularede tid)
+            double energyToAdd = session.getChargingPower() * 15 / 60; // 1.85 kWh för 15 min
+            session.updateBatteryLoad(energyToAdd);
+
+            System.out.println("Partial charge completed. Currently battery level: " + session.getBatteryPercentage() + "%");
+            Thread.sleep(1000);
+        } catch (Exception e) {
+            throw new ChargingServiceException("Error during partial charge: ", e);
+        }
     }
 
     @Override
