@@ -2,11 +2,15 @@ package com.makeienko.laddstation.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,17 +71,32 @@ public class ChargingServiceImplTest {
     }   
 
     @Test
-    void testChargeBatteryDirect() {
-
+    void testChargeBatteryDirect() throws Exception {
         
-        //konfiguera RestTemplate mock attt returera den simulerade Infooresponse
+        //konfiguera RestTemplate mock attt returera olika svar i sekvens
         when(restTemplate.getForObject("http://127.0.0.1:5001/info", String.class)).thenReturn(expectedJsonResponse);
-        // Exekvera metoden
-        chargingService.chargeBatteryDirect();
-
-        //verifiera att metoden anropar RestTemplate
-        verify(restTemplate, atLeastOnce()).getForObject("http://127.0.0.1:5001/info", String.class);
         
+        // Fånga konsoloutput för verifiering
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outputStream));
+        
+        try {
+            // Exekvera metoden
+            chargingService.chargeBatteryDirect();
+
+            //verifiera att metoden anropar RestTemplate 3 gånger
+            verify(restTemplate, times(1)).getForObject("http://127.0.0.1:5001/info", String.class);
+
+            //verifiera konsoloutput
+            String consoleOutput = outputStream.toString();
+            assertTrue(consoleOutput.contains("Battery Capacity (kWh): 20.0"));
+            assertTrue(consoleOutput.contains("Current Load (kWh): 2.0"));
+            assertTrue(consoleOutput.contains("Current battery Level: 10.0%"));
+            assertTrue(consoleOutput.contains("Charging: currently battery Level:"));
+        } finally {
+            System.setOut(originalOut);
+        }
     }
 
     @Test
