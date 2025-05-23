@@ -1,19 +1,16 @@
 package com.makeienko.laddstation.service.strategy;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.web.client.RestTemplate;
-
+import com.makeienko.laddstation.service.LaddstationApiClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class PriceBasedStrategy implements OptimalHoursStrategy {
-    private RestTemplate restTemplate;
+    private LaddstationApiClient apiClient;
 
-    public PriceBasedStrategy(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public PriceBasedStrategy(LaddstationApiClient apiClient) {
+        this.apiClient = apiClient;
     }
 
     @Override
@@ -21,17 +18,9 @@ public class PriceBasedStrategy implements OptimalHoursStrategy {
         List<Double> optimalHours = new ArrayList<>();
 
         //Laddstationens effekt + hushållförbrukning är mindre än 11 kW
-        //Hämta JSON som en lista
-        String jsonResponse1 = restTemplate.getForObject("http://127.0.0.1:5001/priceperhour", String.class);
-        String jsonResponse2 = restTemplate.getForObject("http://127.0.0.1:5001/baseload", String.class);
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        //Deserialisera JSON till en lista av priser
-        double[] hourlyPrices = objectMapper.readValue(jsonResponse1, double[].class);
-        //Deserialisera JSON till en lista av förbrukningsvärden
-        double[] hourlyBaseload = objectMapper.readValue(jsonResponse2, double[].class);
-
+        //Hämta data från API-klient
+        double[] hourlyPrices = apiClient.getHourlyPrices();
+        double[] hourlyBaseload = apiClient.getBaseload();
 
         double optimalHour = 0;
         //Hitta den timme som har det lägsta priset
