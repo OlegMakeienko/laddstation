@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +28,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.makeienko.laddstation.dto.InfoResponse;
+import com.makeienko.laddstation.service.strategy.OptimalHoursStrategy;
 
 public class ChargingServiceImplTest {
     @Mock
@@ -111,24 +117,39 @@ public class ChargingServiceImplTest {
     }
 
     @Test
-    void testDisplayInfoResponse() {
+    void testPerformChargingSessionWithStrategy() throws Exception {
+        //Skapa mock för optimala timmar för OptimalHoursStrategy
+        OptimalHoursStrategy mockStrategy = mock(OptimalHoursStrategy.class);
+        List<Double> optimalHours = Arrays.asList(1.0, 2.0, 13.0, 14.0, 22.0, 23.0, 24.0);
+        when(mockStrategy.findOptimalHours()).thenReturn(optimalHours);
 
-    }
+        //konfiguera InfoResponse att returera timme 2 (optimal)
+        //expectedResponse.setSimTimeHour(14.0);
+        when(restTemplate.getForObject("http://127.0.0.1:5001/info", String.class)).thenReturn(expectedJsonResponse);
 
+        //konfiguera svar för startCharging och stopCharging
+        when(restTemplate.postForObject(eq("http://127.0.0.1:5001/charge"), any(Map.class), eq(String.class))).thenReturn("Charging status changed");
 
-    @Test
-    void testFetchAndDisplayBaseload() {
+        //fånga konsoluotput
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outputStream));
 
-    }
+        try {
+            //kör metoden
+            chargingService.performChargingSessionWithStrategy(mockStrategy);
 
-    @Test
-    void testFetchAndDisplayPriceForElZone() {
+            //verifiera anrop
+            verify(mockStrategy).findOptimalHours();
+            verify(restTemplate, atLeastOnce()).getForObject("http://127.0.0.1:5001/info", String.class);
+            verify(restTemplate, times(2)).postForObject(eq("http://127.0.0.1:5001/charge"), any(Map.class), eq(String.class));
 
-    }
-
-    @Test
-    void testPerformChargingSessionWithStrategy() {
-
+            //verifiera loggade meddelandden
+            String output = outputStream.toString();
+            assertTrue(output.contains("Current hour (14.0) is optimal for charging"));
+        } finally {
+            System.setOut(originalOut);
+        }
     }
 
     @Test
