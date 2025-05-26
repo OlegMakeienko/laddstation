@@ -24,7 +24,7 @@ base_load_residential_percent=[0.08,0.07,0.20,0.18,0.25,0.35,0.41,0.34,0.35,0.40
 base_load_residential_kwh=[value * max_power_residential_building for value in base_load_residential_percent]
 base_load_residential_kwh = [round(x, 2) for x in base_load_residential_kwh]
 #base_load_residential_kWh=[1.6,1.494,1.332,1.275,1.372,1.408,1.588,2.18,2.142,2.73,1.439,1.416,1.14,1.18,1.651,1.968,2.08,1.87,2.77,3.157,2.365,2.854,2.911,1.942]
-base_current_load=base_load_residential_kwh[0]
+current_household_load_kwh = base_load_residential_kwh[0] # Byt namn för tydlighet
 
 #Battery (Citroen e_Berlingo M)
 ev_batt_nominal_capacity=50 # kWh
@@ -57,16 +57,16 @@ def main_prg():
     global ev_batt_capacity_percent
     global ev_batt_capacity_kWh
     global ev_batt_max_capacity
-    global base_current_load
+    global current_household_load_kwh # Använd det nya namnet
     global seconds_per_hour
     while True:
-        base_current_load=base_load_residential_kwh[sim_hour]
+        current_household_load_kwh = base_load_residential_kwh[sim_hour] # Uppdatera bara hushållets last
         for i in range(0,seconds_per_hour):
             if ev_battery_charge_start_stopp:
                 if ev_batt_capacity_percent <110.0:
                     ev_batt_capacity_kWh=ev_batt_capacity_kWh+charging_power/seconds_per_hour
                     ev_batt_capacity_kWh=round(ev_batt_capacity_kWh,2)
-                    base_current_load=round(base_current_load+charging_power/seconds_per_hour,2)
+                    # Ta bort: base_current_load uppdateras inte med charging_power här
                     ev_batt_capacity_percent=round(ev_batt_capacity_kWh/ev_batt_max_capacity*100,2)
             sim_min=int(round((60/seconds_per_hour*i)%60,0))
             time.sleep(1)
@@ -86,15 +86,28 @@ def home():
 
 @app.route('/info', methods=['GET'])
 def station_info():
-    global base_current_load
+    global current_household_load_kwh # Använd det nya namnet
+    # Beräkna total last dynamiskt om det behövs för /info, eller returnera separat
+    # total_current_load_if_charging = current_household_load_kwh # Removed calculation
+    # if ev_battery_charge_start_stopp:
+    #     total_current_load_if_charging += charging_power
+    #     total_current_load_if_charging = round(total_current_load_if_charging, 2)
+
     if request.method == 'GET':
-        charging_station_info={ "sim_time_hour":sim_hour,\
-                                "sim_time_min":sim_min, \
-                                "base_current_load":base_current_load, \
-                                "battery_capacity_kWh":ev_batt_capacity_kWh, \
-                                "ev_battery_charge_start_stopp":ev_battery_charge_start_stopp
-                              }
-        return (json.dumps(charging_station_info),{"Access-Control-Allow-Origin":"*"})
+        # Byt namn i output för tydlighet, eller behåll "base_current_load" om Java-koden förväntar sig det
+        # och se till att Java-koden förstår att det är hushållets last.
+        # För nu, returnerar jag hushållets last som "household_load_kwh"
+        # och bilens batterinivå som "battery_energy_kwh" för att undvika missförstånd.
+        # Java-koden behöver uppdateras för att använda dessa nya nycklar.
+        response_data={
+            "sim_time_hour": sim_hour,
+            "sim_time_min": sim_min,
+            "household_load_kwh": current_household_load_kwh, # Detta är bara hushållet
+            "battery_energy_kwh": ev_batt_capacity_kWh,    # Detta är bilens batteri kWh
+            "ev_battery_charge_start_stopp": ev_battery_charge_start_stopp,
+            "ev_batt_max_capacity_kwh": ev_batt_max_capacity
+        }
+        return (json.dumps(response_data),{"Access-Control-Allow-Origin":"*"})
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
@@ -148,7 +161,7 @@ def charge_battery():
 @app.route('/discharge', methods=['POST', 'GET'])
 def discharge_battery():
     global ev_battery_charge_start_stopp
-    global base_current_load
+    global current_household_load_kwh # Använd det nya namnet
     global base_load_residential_kwh
     global ev_batt_nominal_capacity
     global ev_batt_max_capacity
@@ -170,7 +183,7 @@ def discharge_battery():
             with global_lock:
                 if discharg=="on":
                     ev_battery_charge_start_stopp=False
-                    base_current_load=base_load_residential_kwh[0]
+                    current_household_load_kwh = base_load_residential_kwh[0] # Återställ hushållets last
                     #Battery (Citroen e_Berlingo M)
                     ev_batt_nominal_capacity=50 # kWh
                     ev_batt_max_capacity=46.3   # kWh
