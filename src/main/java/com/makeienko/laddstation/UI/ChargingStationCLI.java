@@ -2,6 +2,8 @@ package com.makeienko.laddstation.UI;
 
 import com.makeienko.laddstation.service.ChargingService;
 import com.makeienko.laddstation.service.ChargingServiceImpl;
+import com.makeienko.laddstation.service.LaddstationApiClient;
+import com.makeienko.laddstation.service.BatteryManager;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -67,7 +69,10 @@ public class ChargingStationCLI {
     }
 
     public static void main(String[] args) {
-        ChargingService chargingService = new ChargingServiceImpl(new RestTemplate());
+        RestTemplate restTemplate = new RestTemplate();
+        LaddstationApiClient apiClient = new LaddstationApiClient(restTemplate);
+        BatteryManager batteryManager = new BatteryManager(apiClient);
+        ChargingService chargingService = new ChargingServiceImpl(apiClient, batteryManager);
         ChargingStationCLI cli = new ChargingStationCLI(chargingService);
         cli.start();
     }

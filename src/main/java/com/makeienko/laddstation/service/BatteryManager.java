@@ -100,7 +100,7 @@ public class BatteryManager {
             InfoResponse infoResponse = apiClient.getInfo();
             if (infoResponse != null) {
                 double batteryPercentage = (infoResponse.getBaseCurrentLoad() / infoResponse.getBatteryCapacityKWh()) * 100;
-                //System.out.println("Current Battery Level Before Charging: " + batteryPercentage + "%");
+                System.out.println("Current Battery Level Before Charging: " + batteryPercentage + "%");
                 return batteryPercentage >= 80;
             }
         } catch (Exception e) {

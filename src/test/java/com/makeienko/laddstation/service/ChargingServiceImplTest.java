@@ -107,12 +107,21 @@ public class ChargingServiceImplTest {
     }
 
     @Test
-    void testChargingSessionOnOptimalChargingHours() {
+    void testChargingSessionOnOptimalChargingHours() throws Exception {
+
+        //Skapa mock för optimala timmar för OptimalHoursStrategy
+        OptimalHoursStrategy mockStrategy = mock(OptimalHoursStrategy.class);
+        List<Double> optimalHours = Arrays.asList(1.0, 2.0, 13.0, 14.0, 22.0, 23.0, 24.0);
+        when(mockStrategy.findOptimalHours()).thenReturn(optimalHours);
+        
+
 
     }
 
     @Test
     void testChargingSessionOnOptimalChargingHoursPrice() {
+        
+
 
     }
 
