@@ -16,4 +16,5 @@ public interface ChargingService {
     void chargingSessionOnOptimalChargingHoursPrice();
     void chargingSessionOnOptimalChargingHours();
     void performChargingSessionWithStrategy(OptimalHoursStrategy strategy);
+    void dischargeBatteryTo20();
 }
