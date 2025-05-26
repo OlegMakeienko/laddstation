@@ -4,6 +4,7 @@ import com.makeienko.laddstation.service.ChargingService;
 import com.makeienko.laddstation.service.ChargingServiceImpl;
 import com.makeienko.laddstation.service.LaddstationApiClient;
 import com.makeienko.laddstation.service.BatteryManager;
+import com.makeienko.laddstation.service.ChargingHourOptimizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -33,6 +34,7 @@ public class ChargingStationCLI {
             System.out.println("6. Starta laddning när när hushållets förbrukning är som lägst och total energiförbrukning" +
                     "skall understiga 11kW");
             System.out.println("7. Avsluta");
+            System.out.println("8. Ladda ur batteriet till 20%");
             System.out.print("Välj ett alternativ: ");
 
             int choice = scanner.nextInt();
@@ -58,7 +60,10 @@ public class ChargingStationCLI {
                     break;
                 case 7:
                     System.out.println("Avslutar programmet...");
-                    running = false;
+                    System.exit(0);
+                    break;
+                case 8:
+                    chargingService.dischargeBatteryTo20();
                     break;
                 default:
                     System.out.println("Ogiltigt val, försök igen.");
@@ -72,7 +77,8 @@ public class ChargingStationCLI {
         RestTemplate restTemplate = new RestTemplate();
         LaddstationApiClient apiClient = new LaddstationApiClient(restTemplate);
         BatteryManager batteryManager = new BatteryManager(apiClient);
-        ChargingService chargingService = new ChargingServiceImpl(apiClient, batteryManager);
+        ChargingHourOptimizer chargingHourOptimizer = new ChargingHourOptimizer(apiClient);
+        ChargingService chargingService = new ChargingServiceImpl(apiClient, batteryManager, chargingHourOptimizer);
         ChargingStationCLI cli = new ChargingStationCLI(chargingService);
         cli.start();
     }
