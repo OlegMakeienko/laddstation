@@ -11,12 +11,15 @@ public class InfoResponse {
     @JsonProperty("sim_time_min")
     private double simTimeMin;  // sim_time_min
 
-    @JsonProperty("base_current_load")
-    private double baseCurrentLoad; // base_current_load
+    @JsonProperty("household_load_kwh")
+    private double householdLoadKwh; // base_current_load
 
-    @JsonProperty("battery_capacity_kWh")
-    private double batteryCapacityKWh; // battery_capacity_kWh
+    @JsonProperty("battery_energy_kwh")
+    private double batteryEnergyKwh;  // battery_capacity_kWh
 
     @JsonProperty("ev_battery_charge_start_stopp")
     private boolean evBatteryChargeStartStopp; // ev_battery_charge_start_stopp
+
+    @JsonProperty("ev_batt_max_capacity_kwh")
+    private double evBattMaxCapacityKwh;
 }
