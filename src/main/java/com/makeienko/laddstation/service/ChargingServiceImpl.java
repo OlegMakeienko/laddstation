@@ -15,10 +15,12 @@ public class ChargingServiceImpl implements ChargingService {
 
     private final LaddstationApiClient apiClient;
     private final BatteryManager batteryManager;
+    private final ChargingHourOptimizer chargingHourOptimizer;
 
-    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager) {
+    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer) {
         this.apiClient = apiClient;
         this.batteryManager = batteryManager;
+        this.chargingHourOptimizer = chargingHourOptimizer;
     }
 
     @Override
@@ -35,9 +37,10 @@ public class ChargingServiceImpl implements ChargingService {
         if (infoResponse != null) {
             // Skriv ut objektets data i ett strukturerat format
             System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
-            System.out.println("Base Current Load: " + infoResponse.getBaseCurrentLoad() + " kW");
-            System.out.println("Battery Capacity: " + infoResponse.getBatteryCapacityKWh() + " kWh");
+            System.out.println("Household Load: " + infoResponse.getHouseholdLoadKwh() + " kW");
+            System.out.println("EV Battery Energy: " + infoResponse.getBatteryEnergyKwh() + " kWh");
             System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
+            System.out.println("EV Battery Max Capacity: " + infoResponse.getEvBattMaxCapacityKwh() + " kWh");
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
         }
@@ -67,7 +70,6 @@ public class ChargingServiceImpl implements ChargingService {
 
             // Skriv ut hushållets energiförbrukning per timme
             System.out.println("Hushållets energiförbrukning (kWh per timme):");
-
             double totalConsumption = 0;
             for (int i = 0; i < hourlyBaseload.length; i++) {
                 System.out.printf("Timme %d: %.2f kWh%n", i, hourlyBaseload[i]);
@@ -75,7 +77,6 @@ public class ChargingServiceImpl implements ChargingService {
             }
             // Skriv ut total förbrukning under dygnet
             System.out.printf("Total förbrukning för dygnet: %.2f kWh%n", totalConsumption);
-
         } catch (Exception e) {
             System.err.println("Fel vid hämtning av baseload-information: " + e.getMessage());
         }
@@ -83,28 +84,47 @@ public class ChargingServiceImpl implements ChargingService {
 
     @Override
     public void chargeBatteryDirect() {
-        batteryManager.chargeBattery();
+        System.out.println("ChargingServiceImpl: Starting direct charge to 80%.");
+        
+        // Display initial battery info before starting
+        InfoResponse initialInfo = apiClient.getInfo();
+        if (initialInfo != null) {
+            double currentPercentage = (initialInfo.getBatteryEnergyKwh() / initialInfo.getEvBattMaxCapacityKwh()) * 100;
+            currentPercentage = Math.round(currentPercentage * 10.0) / 10.0;
+            System.out.println("Initial EV Battery Energy: " + initialInfo.getBatteryEnergyKwh() + " kWh");
+            System.out.println("Initial EV Battery Max Capacity: " + initialInfo.getEvBattMaxCapacityKwh() + " kWh");
+            System.out.println("Initial EV Battery Level: " + currentPercentage + "%");
+        } else {
+            System.err.println("ChargingServiceImpl: Could not fetch initial battery info before direct charge.");
+        }
+
+        batteryManager.startChargingApi(); // Tala om för servern att börja ladda
+        boolean targetReached = batteryManager.chargeBatteryUntilTarget();
+        if (targetReached) {
+            System.out.println("ChargingServiceImpl: Direct charge completed, target reached.");
+        }
+        // Stoppa alltid laddningen på servern efteråt, oavsett om målet nåddes eller det avbröts.
+        // Om chargeBatteryUntilTarget avbröts (returnerade false) har den redan försökt stoppa.
+        System.out.println("ChargingServiceImpl: Ensuring charging is stopped on server after direct charge attempt.");
+        batteryManager.stopChargingApi(); 
     }
 
     boolean isOptimalHour(double currentHour, List<Double> optimalHours) {
-        for (double hour : optimalHours) {
-            if (currentHour == hour) {
-                return true;
-            }
-        }
-        return false;
+        return optimalHours.contains(currentHour);
     }
 
     void waitUntilNextHour(double currentMinute) throws InterruptedException {
-        double minutesToWait = 60 - currentMinute; // Beräkna minuter kvar till nästa timme
-        double simulatedTimeInSeconds = minutesToWait / 15; // Konvertera minuter till simulerad tid i sekunder
+        double minutesToWait = 60 - currentMinute;
+        long realMillisecondsToWait = (long) (minutesToWait / 15.0 * 1000.0);
+         if (realMillisecondsToWait <= 0) realMillisecondsToWait = 100; 
+
         System.out.println("Waiting for " + minutesToWait + " simulated minutes ("
-                + simulatedTimeInSeconds + " real seconds) until the next hour...");
-        Thread.sleep((long) (simulatedTimeInSeconds * 1000L)); // Vänta den beräknade tiden i verkliga sekunder
+                + (realMillisecondsToWait / 1000.0) + " real seconds) until the next hour...");
+        Thread.sleep(realMillisecondsToWait);
     }
 
+    // Denna metod används inte längre aktivt av strategierna
     Double findNextOptimalChargingHour(int currentHour, List<Double> optimalHours) {
-        // Sortera listan av optimala timmar (om den inte redan är sorterad)
         Collections.sort(optimalHours);
 
         // Leta efter den första timmen i listan som är större än currentHour
@@ -113,131 +133,104 @@ public class ChargingServiceImpl implements ChargingService {
                 return hour; // Returnera nästa optimala timme
             }
         }
-
-        // Om ingen timme är större än currentHour, återgå till den första timmen (cirkulärt)
-        return optimalHours.get(0);
+        return optimalHours.isEmpty() ? null : optimalHours.get(0);
     }
 
     @Override
     public void chargingSessionOnOptimalChargingHoursPrice() {
-        OptimalHoursStrategy strategy = new PriceBasedStrategy(apiClient);
-        performChargingSessionWithStrategy(strategy);
+        OptimalHoursStrategy strategy = new PriceBasedStrategy(apiClient, chargingHourOptimizer);
+        performSmartChargingSession(strategy);
     }
 
     @Override
     public void chargingSessionOnOptimalChargingHours() {
+        OptimalHoursStrategy strategy = new ConsumptionBasedStrategy(apiClient, chargingHourOptimizer);
+        performSmartChargingSession(strategy);
+    }
+
+    private void performSmartChargingSession(OptimalHoursStrategy strategy) {
         try {
-            //Skapa strategi för att hitta optimala timmar
-            OptimalHoursStrategy strategy = new ConsumptionBasedStrategy(apiClient);
+            System.out.println("ChargingServiceImpl: Starting smart charging session.");
             List<Double> optimalHours = strategy.findOptimalHours();
 
-            boolean isCharging = false;
-            boolean targetReached = false;
+            if (optimalHours.isEmpty()) {
+                System.out.println("ChargingServiceImpl: No optimal hours found. Cannot start charging session.");
+                return;
+            }
 
-            System.out.println("Starting smart charging session with consumption-based optimization");
-            System.out.println("Optimal hours for charging: " + optimalHours);
+            boolean isCurrentlyCharging = false;
 
-            while (!targetReached) {
-                InfoResponse infoResponse = fetchAndDeserializeInfo();
+            while (!batteryManager.isBatterySufficient()) {
+                InfoResponse infoResponse = apiClient.getInfo();
                 if (infoResponse == null) {
-                    System.out.println("Failed to fetch information. Retrying in 10 sec...");
+                    System.err.println("ChargingServiceImpl: Failed to fetch info. Retrying in 10 sec...");
                     Thread.sleep(10000);
                     continue;
                 }
 
                 double currentHour = infoResponse.getSimTimeHour();
-                double currentMinute = infoResponse.getSimTimeMin(); // Needed for waitUntilNextHour
+                double currentMinute = infoResponse.getSimTimeMin();
                 boolean isCurrentHourOptimal = isOptimalHour(currentHour, optimalHours);
 
-                //Kontrollera om vi har nått målladdningsnivå (ca 80%)
-                if (batteryManager.isBatterySufficient()) {
-                    if (isCharging) {
-                        System.out.println("Battery reached target level (>=80%) while charging. Stopping charging.");
-                        batteryManager.stopCharging();
-                        isCharging = false;
-                    } else {
-                        System.out.println("Battery already at target level (>=80%). No charging needed.");
-                    }
-                    System.out.println("Charging complete or not needed.");
-                    targetReached = true;
-                    continue; // Exit the while loop
-                }
-
-                //Hantera ladding baserat på om timmen är optimal
                 if (isCurrentHourOptimal) {
-                    if (!isCharging) {
-                        System.out.println("Optimal hour (" + currentHour + ") started. Starting charging.");
-                        batteryManager.startCharging();
-                        isCharging = true;
+                    if (!isCurrentlyCharging) {
+                        System.out.println("ChargingServiceImpl: Optimal hour (" + currentHour + ") started. Starting charging on server.");
+                        batteryManager.startChargingApi();
+                        isCurrentlyCharging = true;
                     }
-                    // Om vi just startade eller redan var på gång, ladda lite
-                    System.out.println("Charging during optimal hour " + currentHour + ".");
-                    batteryManager.chargeBatteryPartial(); // This method contains a sleep corresponding to its charge duration (15 sim minutes)
-                } else { // Current hour is NOT optimal
-                    if (isCharging) {
-                        // Försök att hämta föregående timme för loggning, hantera wrap-around från 0 till 23
-                        double previousHour = (currentHour == 0) ? 23 : currentHour -1;
-                        System.out.println("Optimal hour (" + previousHour + ") ended. Current non-optimal hour: " + currentHour + ". Stopping charging.");
-                        batteryManager.stopCharging();
-                        isCharging = false;
+                    System.out.println("ChargingServiceImpl: Charging during optimal hour " + currentHour + ". Simulating 15 min charge period.");
+                    batteryManager.simulateChargingPeriod(15); // Servern laddar i 15 sim-minuter
+                } else {
+                    if (isCurrentlyCharging) {
+                        System.out.println("ChargingServiceImpl: Optimal hour ended. Current non-optimal hour: " + currentHour + ". Stopping charging on server.");
+                        batteryManager.stopChargingApi();
+                        isCurrentlyCharging = false;
                     }
-                    // Vänta tills nästa timme börjar
-                    System.out.println("Current hour (" + currentHour + ") is not optimal. Waiting until the next simulated hour begins.");
+                    System.out.println("ChargingServiceImpl: Current hour (" + currentHour + ") is not optimal. Waiting until the next simulated hour begins.");
                     waitUntilNextHour(currentMinute);
                 }
-            } // end while
-        } catch (Exception e) {
-            // Se till att InterruptedException hanteras korrekt om den kastas av Thread.sleep eller waitUntilNextHour
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt(); // Preserve interrupt status
-                System.err.println("Charging session was interrupted.");
             }
-            throw new ChargingServiceException("Error in charging session with consumption strategy.", e);
+
+            // Batteriet är tillräckligt laddat
+            if (isCurrentlyCharging) {
+                System.out.println("ChargingServiceImpl: Target battery level reached. Stopping charging on server.");
+                batteryManager.stopChargingApi();
+            }
+            System.out.println("ChargingServiceImpl: Smart charging session complete. Battery is sufficiently charged.");
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("ChargingServiceImpl: Smart charging session was interrupted.");
+            batteryManager.stopChargingApi(); // Försök stoppa laddningen om tråden avbryts
+        } catch (Exception e) {
+            System.err.println("ChargingServiceImpl: Error in smart charging session: " + e.getMessage());
+            batteryManager.stopChargingApi(); // Försök stoppa laddningen vid fel
+            throw new ChargingServiceException("Error in smart charging session with strategy.", e);
         }
     }
 
-    //Hjälpmetodd för att beräkna tid till nästa optimala timme
-    private double calculateHoursToWait(double currentHour, double nextOptimalHour) {
-        if (nextOptimalHour > currentHour) {
-            return nextOptimalHour - currentHour;
-        } else {
-            //om nästa timmen kommer på nästa dag
-            return 24 - currentHour + nextOptimalHour;
-        }
+    // Ersatt av performSmartChargingSession för en mer robust logik
+    @Deprecated
+    @Override
+    public void performChargingSessionWithStrategy(OptimalHoursStrategy strategy) {
+        System.out.println("DEPRECATED: performChargingSessionWithStrategy is called, redirecting to performSmartChargingSession");
+        performSmartChargingSession(strategy);
     }
 
     @Override
-    public void performChargingSessionWithStrategy(OptimalHoursStrategy strategy) {
+    public void dischargeBatteryTo20() {
+        System.out.println("ChargingServiceImpl: Initiating discharge to 20%.");
+        batteryManager.dischargeBatteryTo20Api();
+        // We might want to poll here until 20% is confirmed, or trust the server handles it.
+        // For now, just calling the API and printing a message.
+        System.out.println("ChargingServiceImpl: Discharge command sent to server.");
+        // Optionally, display battery status after a short delay
         try {
-            List<Double> optimalHours = strategy.findOptimalHours();
-
-            while (true) {
-                InfoResponse infoResponse = fetchAndDeserializeInfo();
-                if(infoResponse == null) {
-                    System.out.println("Failed to fetch current time from the server. Retrying...");
-                    Thread.sleep(10000);
-                    continue;
-                }
-
-                double currentHour = infoResponse.getSimTimeHour();
-
-                if(isOptimalHour(currentHour, optimalHours)) {
-                    System.out.println("Current hour (" + currentHour + ") is optimal for charging");
-                    batteryManager.startCharging();
-
-                    if (!batteryManager.isBatterySufficient()) {
-                        batteryManager.chargeBattery();
-                    }
-
-                    batteryManager.stopCharging();
-                    break;
-                } else {
-                    System.out.println("Current hour (" + currentHour + ") is not optimal for charging. Waiting...");
-                    waitUntilNextHour(infoResponse.getSimTimeMin());
-                }
-            }
-        } catch (Exception e) {
-            throw new ChargingServiceException("Error during charging session", e);
+            Thread.sleep(2000); // Wait 2 seconds for server to process
+            displayInfoResponse();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after discharge command.");
         }
     }
 }
