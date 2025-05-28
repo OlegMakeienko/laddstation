@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+/node_modules
+/build
+/node 
+# Om frontend-maven-plugin skapar en 'target' eller liknande temporär mapp här
+# /target 
+# Andra OS-specifika eller editor-specifika filer som .DS_Store, .idea etc. kan också läggas till.
