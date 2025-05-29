@@ -4,6 +4,7 @@ import com.makeienko.laddstation.dto.*;
 import com.makeienko.laddstation.service.LaddstationApiClient;
 import com.makeienko.laddstation.service.ChargingHourOptimizer;
 import com.makeienko.laddstation.service.HomeBatteryManager;
+import com.makeienko.laddstation.service.SolarPanelManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +19,13 @@ public class LaddstationController {
     private final LaddstationApiClient apiClient;
     private final ChargingHourOptimizer chargingHourOptimizer;
     private final HomeBatteryManager homeBatteryManager;
+    private final SolarPanelManager solarPanelManager;
 
-    public LaddstationController(LaddstationApiClient apiClient, ChargingHourOptimizer chargingHourOptimizer, HomeBatteryManager homeBatteryManager) {
+    public LaddstationController(LaddstationApiClient apiClient, ChargingHourOptimizer chargingHourOptimizer, HomeBatteryManager homeBatteryManager, SolarPanelManager solarPanelManager) {
         this.apiClient = apiClient;
         this.chargingHourOptimizer = chargingHourOptimizer;
         this.homeBatteryManager = homeBatteryManager;
+        this.solarPanelManager = solarPanelManager;
     }
 
     /**
@@ -165,6 +168,16 @@ public class LaddstationController {
             );
             
             return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/solar-panel")
+    public ResponseEntity<SolarPanelStatus> getSolarPanelStatus() {
+        try {
+            SolarPanelStatus status = solarPanelManager.getSolarPanelStatus();
+            return ResponseEntity.ok(status);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }

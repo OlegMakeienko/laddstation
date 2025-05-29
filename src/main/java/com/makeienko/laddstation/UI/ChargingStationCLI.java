@@ -5,6 +5,8 @@ import com.makeienko.laddstation.service.ChargingServiceImpl;
 import com.makeienko.laddstation.service.LaddstationApiClient;
 import com.makeienko.laddstation.service.BatteryManager;
 import com.makeienko.laddstation.service.ChargingHourOptimizer;
+import com.makeienko.laddstation.service.HomeBatteryManager;
+import com.makeienko.laddstation.service.SolarPanelManager;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -78,7 +80,9 @@ public class ChargingStationCLI {
         LaddstationApiClient apiClient = new LaddstationApiClient(restTemplate);
         BatteryManager batteryManager = new BatteryManager(apiClient);
         ChargingHourOptimizer chargingHourOptimizer = new ChargingHourOptimizer(apiClient);
-        ChargingService chargingService = new ChargingServiceImpl(apiClient, batteryManager, chargingHourOptimizer);
+        HomeBatteryManager homeBatteryManager = new HomeBatteryManager(apiClient);
+        SolarPanelManager solarPanelManager = new SolarPanelManager(apiClient);
+        ChargingService chargingService = new ChargingServiceImpl(apiClient, batteryManager, chargingHourOptimizer, homeBatteryManager, solarPanelManager);
         ChargingStationCLI cli = new ChargingStationCLI(chargingService);
         cli.start();
     }

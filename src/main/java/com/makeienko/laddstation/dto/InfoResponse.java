@@ -38,4 +38,14 @@ public class InfoResponse {
 
     @JsonProperty("home_battery_mode")
     private String homeBatteryMode; // "idle", "charging", "discharging"
+
+    // Solar Panel fields
+    @JsonProperty("solar_production_kwh")
+    private double solarProductionKwh;
+
+    @JsonProperty("solar_max_capacity_kwh")
+    private double solarMaxCapacityKwh;
+
+    @JsonProperty("net_household_load_kwh")
+    private double netHouseholdLoadKwh;
 }

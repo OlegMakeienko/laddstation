@@ -17,12 +17,14 @@ public class ChargingServiceImpl implements ChargingService {
     private final BatteryManager batteryManager;
     private final ChargingHourOptimizer chargingHourOptimizer;
     private final HomeBatteryManager homeBatteryManager;
+    private final SolarPanelManager solarPanelManager;
 
-    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer, HomeBatteryManager homeBatteryManager) {
+    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer, HomeBatteryManager homeBatteryManager, SolarPanelManager solarPanelManager) {
         this.apiClient = apiClient;
         this.batteryManager = batteryManager;
         this.chargingHourOptimizer = chargingHourOptimizer;
         this.homeBatteryManager = homeBatteryManager;
+        this.solarPanelManager = solarPanelManager;
     }
 
     @Override
@@ -52,6 +54,29 @@ public class ChargingServiceImpl implements ChargingService {
             System.out.println("Home Battery Max Capacity: " + infoResponse.getHomeBattMaxCapacityKwh() + " kWh");
             System.out.println("Home Battery Min Capacity: " + infoResponse.getHomeBattMinCapacityKwh() + " kWh");
             System.out.println("Home Battery Mode: " + infoResponse.getHomeBatteryMode());
+            
+            // Solar Panel information
+            try {
+                com.makeienko.laddstation.dto.SolarPanelStatus solarStatus = solarPanelManager.getSolarPanelStatus();
+                System.out.println("\n=== SOLPANEL STATUS ===");
+                System.out.println("Solar Production: " + solarStatus.getCurrentProductionKwh() + " kWh");
+                System.out.println("Solar Max Capacity: " + solarStatus.getMaxCapacityKwh() + " kWh");
+                System.out.println("Solar Production Percent: " + solarStatus.getProductionPercent() + "%");
+                System.out.println("Solar Production Status: " + solarStatus.getProductionStatus());
+                System.out.println("Energy Surplus: " + solarStatus.getEnergySurplus() + " kWh");
+                System.out.println("Daily Production Estimate: " + String.format("%.2f", solarStatus.getDailyProductionEstimate()) + " kWh");
+                System.out.println("Net Household Load: " + solarStatus.getNetHouseholdLoadKwh() + " kWh");
+                
+                if (solarStatus.getOptimizationTips().length > 0) {
+                    System.out.println("\n💡 OPTIMERINGSTIPS:");
+                    for (String tip : solarStatus.getOptimizationTips()) {
+                        System.out.println("  " + tip);
+                    }
+                }
+                System.out.println("========================");
+            } catch (Exception e) {
+                System.err.println("Error getting solar panel status: " + e.getMessage());
+            }
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
         }
