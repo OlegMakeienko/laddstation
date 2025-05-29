@@ -1,10 +1,10 @@
 import React from 'react';
+import Scene from './components/interactive-scene/Scene';
 
 function App() {
   return (
-    <div>
-      <h1>Hello World from React!</h1>
-      <p>Laddstation Frontend</p>
+    <div className="App">
+      <Scene />
     </div>
   );
 }
