@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
-import { timeService, priceService, chargingOptimizationService, homeBatteryService } from '../../services/api';
+import { timeService, priceService, chargingOptimizationService, homeBatteryService, solarPanelService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
@@ -16,6 +16,13 @@ const Scene = () => {
     healthStatus: 'Optimal',
     reserveHours: 12.5,
     v2hSafe: true
+  });
+  const [solarData, setSolarData] = useState({
+    currentProductionKwh: 0,
+    productionStatus: 'Ingen produktion',
+    productionPercent: 0,
+    energySurplus: 0,
+    optimizationTips: []
   });
   const [optimalChargingData, setOptimalChargingData] = useState({
     timeRange: '22:00 - 06:00',
@@ -86,18 +93,37 @@ const Scene = () => {
     }
   };
 
+  // Hämta solpaneldata från backend
+  const fetchSolarData = async () => {
+    try {
+      const solarStatus = await solarPanelService.getSolarPanelStatus();
+      
+      setSolarData({
+        currentProductionKwh: solarStatus.currentProductionKwh,
+        productionStatus: solarStatus.productionStatus,
+        productionPercent: solarStatus.productionPercent,
+        energySurplus: solarStatus.energySurplus,
+        optimizationTips: solarStatus.optimizationTips || []
+      });
+    } catch (error) {
+      console.error('Failed to fetch solar data:', error);
+    }
+  };
+
   // Hämta alla data när komponenten laddas och sedan varje sekund
   useEffect(() => {
     fetchTime();
     // fetchPriceData(); // Kommenterad
     fetchHomeBatteryData();
     fetchOptimalChargingData();
+    fetchSolarData();
     
     const interval = setInterval(() => {
       fetchTime();
       // fetchPriceData(); // Kommenterad
       fetchHomeBatteryData();
       fetchOptimalChargingData();
+      fetchSolarData();
     }, 1000); // Uppdatera varje sekund
     
     return () => clearInterval(interval);
@@ -188,18 +214,15 @@ const Scene = () => {
         <div className="top-info-panels">
           <div className="info-panel horizontal-panel price-panel">
             <div className="info-panel-header">
-              <h3>🔋 Husbatteri Status</h3>
+              <h3>☀️ Solproduktion</h3>
             </div>
             <div className="info-panel-content">
               <div className="price-info">
-                {/* Kommenterad prisdata:
-                <span className="current-price">{priceService.formatPrice(priceData.currentPrice)}</span>
-                <span className="price-status">{priceData.priceStatus}</span> */}
                 <span className="current-price">
-                  {homeBatteryService.formatBatteryLevel(homeBatteryData?.batteryLevel)}
+                  {solarPanelService.formatProduction(solarData?.currentProductionKwh)}
                 </span>
                 <span className="price-status">
-                  {homeBatteryService.getHealthIcon(homeBatteryData?.healthStatus)} {homeBatteryData?.healthStatus || 'Laddar...'}
+                  {solarPanelService.getProductionIcon(solarData?.productionStatus)} {solarData?.productionStatus || 'Laddar...'}
                 </span>
               </div>
             </div>

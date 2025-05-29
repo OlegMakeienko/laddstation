@@ -13,6 +13,7 @@ public interface ChargingService {
     void displayHomeBatteryStatus();
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
+    void fetchAndDisplaySolarProductionPerHour();
     void chargeBatteryDirect();
     void chargingSessionOnOptimalChargingHoursPrice();
     void chargingSessionOnOptimalChargingHours();

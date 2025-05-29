@@ -121,6 +121,26 @@ public class LaddstationApiClient {
     }
     
     /**
+     * Hämtar solpanelproduktion per timme
+     */
+    public double[] getSolarProductionPerHour() {
+        try {
+            String jsonResponse = restTemplate.getForObject(BASE_URL + "/solarproduction", String.class);
+            if (jsonResponse == null) {
+                throw new ChargingServiceException("Received null response from solarproduction endpoint");
+            }
+            
+            return objectMapper.readValue(jsonResponse, double[].class);
+        } catch (JsonProcessingException e) {
+            throw new ChargingServiceException("Failed to process JSON response from solarproduction: " + e.getMessage(), e);
+        } catch (RestClientException e) {
+            throw new ChargingServiceException("Failed to fetch solar production data: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ChargingServiceException("Unexpected error while fetching solar production: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
      * Urladdning av batteriet till 20%
      */
     public String dischargeBattery() {

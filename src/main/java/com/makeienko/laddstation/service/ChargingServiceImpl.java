@@ -172,6 +172,36 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
+    public void fetchAndDisplaySolarProductionPerHour() {
+        try {
+            // Hämta solpanelproduktion från API-klient
+            double[] hourlySolarProduction = apiClient.getSolarProductionPerHour();
+
+            // Skriv ut solpanelproduktion per timme
+            System.out.println("Solpanelproduktion (kWh per timme):");
+            double totalProduction = 0;
+            for (int i = 0; i < hourlySolarProduction.length; i++) {
+                System.out.printf("Timme %d: %.2f kWh%n", i, hourlySolarProduction[i]);
+                totalProduction += hourlySolarProduction[i];
+            }
+            // Skriv ut total produktion under dygnet
+            System.out.printf("Total produktion för dygnet: %.2f kWh%n", totalProduction);
+            
+            // Visa solpanelens maxkapacitet
+            InfoResponse info = apiClient.getInfo();
+            if (info != null) {
+                System.out.printf("Solpanelens maxkapacitet: %.1f kW%n", info.getSolarMaxCapacityKwh());
+                double maxTheoreticalDaily = info.getSolarMaxCapacityKwh() * 24;
+                double efficiencyPercent = (totalProduction / maxTheoreticalDaily) * 100;
+                System.out.printf("Daglig verkningsgrad: %.1f%% (av teoretisk max %.2f kWh)%n", 
+                    efficiencyPercent, maxTheoreticalDaily);
+            }
+        } catch (Exception e) {
+            System.err.println("Fel vid hämtning av solpanelproduktion: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void chargeBatteryDirect() {
         System.out.println("ChargingServiceImpl: Starting direct charge to 80%.");
         

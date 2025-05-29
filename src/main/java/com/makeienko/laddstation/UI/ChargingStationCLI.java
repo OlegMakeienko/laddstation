@@ -37,6 +37,7 @@ public class ChargingStationCLI {
                     "skall understiga 11kW");
             System.out.println("7. Avsluta");
             System.out.println("8. Ladda ur batteriet till 20%");
+            System.out.println("9. Visa solpanelproduktion per timme");
             System.out.print("Välj ett alternativ: ");
 
             int choice = scanner.nextInt();
@@ -66,6 +67,9 @@ public class ChargingStationCLI {
                     break;
                 case 8:
                     chargingService.dischargeBatteryTo20();
+                    break;
+                case 9:
+                    chargingService.fetchAndDisplaySolarProductionPerHour();
                     break;
                 default:
                     System.out.println("Ogiltigt val, försök igen.");

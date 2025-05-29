@@ -217,4 +217,69 @@ export const homeBatteryService = {
       default: return '❓';
     }
   }
+};
+
+export const solarPanelService = {
+  // Hämta solpanelstatus från backend
+  async getSolarPanelStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/solar-panel`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching solar panel status from backend:', error);
+      // Fallback data om backend inte är tillgängligt
+      return {
+        currentProductionKwh: 0,
+        maxCapacityKwh: 10.0,
+        productionPercent: 0,
+        netHouseholdLoadKwh: 0,
+        productionStatus: 'Ingen produktion',
+        dailyProductionEstimate: 0,
+        energySurplus: 0,
+        isSurplusAvailable: false,
+        optimizationTips: []
+      };
+    }
+  },
+
+  // Formatera produktionsprocent
+  formatProductionPercent(percent) {
+    if (percent === null || percent === undefined) return '--';
+    return `${percent.toFixed(1)}%`;
+  },
+
+  // Formatera produktion i kW
+  formatProduction(kwh) {
+    if (kwh === null || kwh === undefined) return '--';
+    return `${kwh.toFixed(1)} kW`;
+  },
+
+  // Formatera energiöverskott
+  formatSurplus(surplus) {
+    if (surplus === null || surplus === undefined) return '--';
+    return `${surplus.toFixed(1)} kW`;
+  },
+
+  // Få status-ikone baserat på produktionsstatus
+  getProductionIcon(productionStatus) {
+    if (!productionStatus) return '☀️';
+    switch (productionStatus) {
+      case 'Ingen produktion': return '🌙';
+      case 'Låg produktion': return '⛅';
+      case 'Normal produktion': return '🌤️';
+      case 'Hög produktion': return '☀️';
+      case 'Max produktion': return '🌞';
+      default: return '☀️';
+    }
+  },
+
+  // Formatera uppskattad daglig produktion
+  formatDailyEstimate(estimate) {
+    if (estimate === null || estimate === undefined) return '--';
+    return `${estimate.toFixed(1)} kWh`;
+  }
 }; 

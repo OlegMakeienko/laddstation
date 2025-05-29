@@ -287,6 +287,17 @@
   letter-spacing: 0.5px;
 }
 
+.surplus-info {
+  font-size: 10px;
+  color: #4CAF50;
+  font-weight: 600;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-top: 2px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
 @keyframes slideDown {
   from {
     transform: translateY(-100%);

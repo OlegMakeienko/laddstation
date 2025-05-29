@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { householdService, timeService, batteryService, priceService } from '../../services/api';
+import { householdService, timeService, batteryService, priceService, solarPanelService } from '../../services/api';
 import './InfoPanel.css';
 
 const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) => {
@@ -7,6 +7,16 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
     currentConsumption: 0,
     dailyTotal: 0,
     baseloadArray: []
+  });
+
+  const [solarData, setSolarData] = useState({
+    currentProductionKwh: 0,
+    maxCapacityKwh: 10.0,
+    productionPercent: 0,
+    productionStatus: 'Ingen produktion',
+    energySurplus: 0,
+    dailyProductionEstimate: 0,
+    optimizationTips: []
   });
 
   const [batteryData, setBatteryData] = useState({
@@ -25,6 +35,7 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
   useEffect(() => {
     if (objectType === 'house') {
       fetchHouseholdData();
+      fetchSolarData();
     } else if (objectType === 'car') {
       fetchBatteryData();
     } else if (objectType === 'chargingStation') {
@@ -73,18 +84,30 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
     }
   };
 
+  const fetchSolarData = async () => {
+    try {
+      const solarStatus = await solarPanelService.getSolarPanelStatus();
+      setSolarData(solarStatus);
+    } catch (error) {
+      console.error('Failed to fetch solar data:', error);
+    }
+  };
+
   const getObjectInfo = () => {
     switch (objectType) {
       case 'house':
         return {
-          title: '🏠 Smart Hus',
+          title: '🏠 Smart Hus & Solpaneler',
           info: [
             `Aktuell förbrukning: ${householdData.currentConsumption} kWh`,
             `Dagens totala förbrukning: ${householdData.dailyTotal} kWh`,
-            'Solpaneler: ',
-            'Energiproduktion idag: ',
-            'Nettoexport: ',
-            'Status: '
+            '─────────────────────────',
+            `${solarPanelService.getProductionIcon(solarData.productionStatus)} Solproduktion: ${solarPanelService.formatProduction(solarData.currentProductionKwh)} (${solarPanelService.formatProductionPercent(solarData.productionPercent)})`,
+            `Status: ${solarData.productionStatus}`,
+            `Energiöverskott: ${solarPanelService.formatSurplus(solarData.energySurplus)}`,
+            `Uppskattad dagproduktion: ${solarPanelService.formatDailyEstimate(solarData.dailyProductionEstimate)}`,
+            ...(solarData.optimizationTips && solarData.optimizationTips.length > 0 ? 
+               ['─────────────────────────', '💡 Tips:', ...solarData.optimizationTips] : [])
           ]
         };
       case 'car':
