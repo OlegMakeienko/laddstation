@@ -48,7 +48,12 @@ public class ChargingAppRunner implements CommandLineRunner {
 
         //7. Skapa ett GUI eller använd ett terminalfönster(kommandoprompt) för att kommunicera med den simulerade laddstationen.
 
-        chargingStationCLI.start();
+        // Console interface disabled - using React frontend instead
+        // chargingStationCLI.start();
+
+        System.out.println("Laddstation REST API is running on http://localhost:8080");
+        System.out.println("React frontend available on http://localhost:3000");
+        System.out.println("Console interface has been disabled in favor of web interface.");
 
         //chargingService.chargeBatteryDirect();
     }

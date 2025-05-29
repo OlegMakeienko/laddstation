@@ -47,16 +47,55 @@ public class LaddstationController {
     }
 
     /**
-     * Hämtar hushållets basförbrukning per timme
+     * Endpoint för batteristatus med beräknad procent
      */
-    @GetMapping("/baseload")
-    public ResponseEntity<double[]> getBaseload() {
+    @GetMapping("/battery")
+    public ResponseEntity<BatteryStatusResponse> getBatteryStatus() {
         try {
-            double[] baseload = apiClient.getBaseload();
-            return ResponseEntity.ok(baseload);
+            InfoResponse info = apiClient.getInfo();
+            
+            double maxCapacityKwh = info.getEvBattMaxCapacityKwh();
+            double currentPercentage = (info.getBatteryEnergyKwh() / maxCapacityKwh) * 100;
+            currentPercentage = Math.round(currentPercentage * 10.0) / 10.0; // Avrunda till 1 decimal
+            
+            BatteryStatusResponse batteryStatus = new BatteryStatusResponse(
+                currentPercentage,
+                info.getBatteryEnergyKwh(),
+                maxCapacityKwh,
+                info.isEvBatteryChargeStartStopp()
+            );
+            
+            return ResponseEntity.ok(batteryStatus);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    /**
+     * DTO för batteristatus
+     */
+    public static class BatteryStatusResponse {
+        private double percentage;
+        private double currentEnergyKwh;
+        private double maxCapacityKwh;
+        private boolean isCharging;
+
+        public BatteryStatusResponse(double percentage, double currentEnergyKwh, double maxCapacityKwh, boolean isCharging) {
+            this.percentage = percentage;
+            this.currentEnergyKwh = currentEnergyKwh;
+            this.maxCapacityKwh = maxCapacityKwh;
+            this.isCharging = isCharging;
+        }
+
+        public double getPercentage() { return percentage; }
+        public double getCurrentEnergyKwh() { return currentEnergyKwh; }
+        public double getMaxCapacityKwh() { return maxCapacityKwh; }
+        public boolean isCharging() { return isCharging; }
+        
+        public void setPercentage(double percentage) { this.percentage = percentage; }
+        public void setCurrentEnergyKwh(double currentEnergyKwh) { this.currentEnergyKwh = currentEnergyKwh; }
+        public void setMaxCapacityKwh(double maxCapacityKwh) { this.maxCapacityKwh = maxCapacityKwh; }
+        public void setCharging(boolean charging) { isCharging = charging; }
     }
 
     /**
@@ -75,5 +114,18 @@ public class LaddstationController {
         public double getMinute() { return minute; }
         public void setHour(double hour) { this.hour = hour; }
         public void setMinute(double minute) { this.minute = minute; }
+    }
+
+    /**
+     * Hämtar hushållets basförbrukning per timme
+     */
+    @GetMapping("/baseload")
+    public ResponseEntity<double[]> getBaseload() {
+        try {
+            double[] baseload = apiClient.getBaseload();
+            return ResponseEntity.ok(baseload);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 } 

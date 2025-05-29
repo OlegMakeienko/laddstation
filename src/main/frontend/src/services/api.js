@@ -58,4 +58,27 @@ export const householdService = {
     if (!baseloadArray || baseloadArray.length === 0) return 0;
     return baseloadArray.reduce((sum, hourly) => sum + hourly, 0);
   }
+};
+
+export const batteryService = {
+  // Hämta batteristatus från backend
+  async getBatteryStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/battery`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching battery status from backend:', error);
+      // Fallback data om backend inte är tillgängligt
+      return {
+        percentage: 45,
+        currentEnergyKwh: 20.8,
+        maxCapacityKwh: 46.3,
+        isCharging: false
+      };
+    }
+  }
 }; 

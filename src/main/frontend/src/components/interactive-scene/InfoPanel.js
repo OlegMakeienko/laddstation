@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { householdService, timeService } from '../../services/api';
+import { householdService, timeService, batteryService } from '../../services/api';
 import './InfoPanel.css';
 
 const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) => {
@@ -9,10 +9,19 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
     baseloadArray: []
   });
 
-  // Hämta hushållsdata när house-panel öppnas
+  const [batteryData, setBatteryData] = useState({
+    percentage: 0,
+    currentEnergyKwh: 0,
+    maxCapacityKwh: 0,
+    isCharging: false
+  });
+
+  // Hämta data när panel öppnas
   useEffect(() => {
     if (objectType === 'house') {
       fetchHouseholdData();
+    } else if (objectType === 'car') {
+      fetchBatteryData();
     }
   }, [objectType]);
 
@@ -34,6 +43,15 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
     }
   };
 
+  const fetchBatteryData = async () => {
+    try {
+      const battery = await batteryService.getBatteryStatus();
+      setBatteryData(battery);
+    } catch (error) {
+      console.error('Failed to fetch battery data:', error);
+    }
+  };
+
   const getObjectInfo = () => {
     switch (objectType) {
       case 'house':
@@ -52,11 +70,9 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
         return {
           title: '🚗 Elbil',
           info: [
-            'Batteristatus: 45%',
-            'Räckvidd kvar: 180 km',
-            'Laddningshastighet: 11 kW',
-            'Tid till fullt: 3h 20min',
-            `Status: ${chargingStatus ? 'Laddar aktiv' : 'Redo för laddning'}`
+            `Batteristatus: ${batteryData.percentage}%`,
+            `Batterikapacitet: ${batteryData.currentEnergyKwh}/${batteryData.maxCapacityKwh} kWh`,
+            `Status: ${batteryData.isCharging ? 'Laddar aktiv' : 'Redo för laddning'}`
           ]
         };
       case 'chargingStation':
