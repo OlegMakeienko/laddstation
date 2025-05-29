@@ -43,6 +43,14 @@ home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
 home_batt_min_capacity_kWh=home_batt_min_capacity_percent/100*home_batt_max_capacity
 home_battery_charge_discharge_mode="idle" # "charging", "discharging", "idle"
 
+#Solar Panel System (Kraftig villa-anläggning)
+solar_panel_max_capacity=10.0 # kW (kraftig anläggning för att täcka hela huset)
+# Solproduktion per timme (0-23h) - realistisk kurva för svensk sommardag
+solar_production_profile_percent=[0.0,0.0,0.0,0.0,0.0,0.05,0.15,0.35,0.55,0.75,0.90,0.95,1.0,0.95,0.90,0.75,0.55,0.35,0.15,0.05,0.0,0.0,0.0,0.0]
+solar_production_kwh=[value * solar_panel_max_capacity for value in solar_production_profile_percent]
+solar_production_kwh = [round(x, 2) for x in solar_production_kwh]
+current_solar_production_kwh = solar_production_kwh[0] # Aktuell solproduktion
+
 #Charging station
 charging_station_info= {"Power":"7.4"} #EV version 2 charger
 charging_power=7.4 # kW pchmax from car manufacturer
@@ -72,9 +80,13 @@ def main_prg():
     global home_batt_max_capacity
     global home_batt_min_capacity_kWh
     global home_battery_charge_discharge_mode
+    global current_solar_production_kwh
+    global solar_production_kwh
     
     while True:
         current_household_load_kwh = base_load_residential_kwh[sim_hour] # Uppdatera bara hushållets last
+        current_solar_production_kwh = solar_production_kwh[sim_hour] # Uppdatera solproduktion
+        
         for i in range(0,seconds_per_hour):
             # EV Battery charging logic
             if ev_battery_charge_start_stopp:
@@ -136,7 +148,10 @@ def station_info():
             "home_batt_max_capacity_kwh": home_batt_max_capacity,
             "home_batt_min_capacity_kwh": home_batt_min_capacity_kWh,
             "home_batt_capacity_percent": home_batt_capacity_percent,
-            "home_battery_mode": home_battery_charge_discharge_mode
+            "home_battery_mode": home_battery_charge_discharge_mode,
+            "solar_production_kwh": current_solar_production_kwh,
+            "solar_max_capacity_kwh": solar_panel_max_capacity,
+            "net_household_load_kwh": round(current_household_load_kwh - current_solar_production_kwh, 2)
         }
         return (json.dumps(response_data),{"Access-Control-Allow-Origin":"*"})
     else:
@@ -155,6 +170,14 @@ def base_load_info():
 def price_per_hour_info():
     if request.method == 'GET':
         return (json.dumps(energy_price))
+    else:
+        return jsonify({'error': 'Unsupported HTTP method'})
+
+#deliver solar production per hour, starting at 00-01 a´clock, 01-02 a´clock, 02-03 ...
+@app.route('/solarproduction', methods=['GET'])
+def solar_production_info():
+    if request.method == 'GET':
+        return (json.dumps(solar_production_kwh))
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
