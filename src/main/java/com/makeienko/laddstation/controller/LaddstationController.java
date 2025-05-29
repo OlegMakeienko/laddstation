@@ -128,4 +128,51 @@ public class LaddstationController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    /**
+     * Hämtar aktuellt timpris baserat på simulerad tid
+     */
+    @GetMapping("/current-price")
+    public ResponseEntity<CurrentPriceResponse> getCurrentPrice() {
+        try {
+            InfoResponse info = apiClient.getInfo();
+            double[] hourlyPrices = apiClient.getHourlyPrices();
+            
+            int currentHour = (int) Math.floor(info.getSimTimeHour()) % 24;
+            double currentPrice = hourlyPrices[currentHour];
+            
+            CurrentPriceResponse priceResponse = new CurrentPriceResponse(
+                currentPrice,
+                currentHour,
+                hourlyPrices
+            );
+            
+            return ResponseEntity.ok(priceResponse);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * DTO för aktuellt timpris
+     */
+    public static class CurrentPriceResponse {
+        private double currentPrice;
+        private int currentHour;
+        private double[] hourlyPrices;
+
+        public CurrentPriceResponse(double currentPrice, int currentHour, double[] hourlyPrices) {
+            this.currentPrice = currentPrice;
+            this.currentHour = currentHour;
+            this.hourlyPrices = hourlyPrices;
+        }
+
+        public double getCurrentPrice() { return currentPrice; }
+        public int getCurrentHour() { return currentHour; }
+        public double[] getHourlyPrices() { return hourlyPrices; }
+        
+        public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
+        public void setCurrentHour(int currentHour) { this.currentHour = currentHour; }
+        public void setHourlyPrices(double[] hourlyPrices) { this.hourlyPrices = hourlyPrices; }
+    }
 } 

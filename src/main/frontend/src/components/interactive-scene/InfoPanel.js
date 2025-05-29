@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { householdService, timeService, batteryService } from '../../services/api';
+import { householdService, timeService, batteryService, priceService } from '../../services/api';
 import './InfoPanel.css';
 
 const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) => {
@@ -16,12 +16,19 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
     isCharging: false
   });
 
+  const [priceData, setPriceData] = useState({
+    currentPrice: 2.50,
+    priceStatus: 'Normalpris'
+  });
+
   // Hämta data när panel öppnas
   useEffect(() => {
     if (objectType === 'house') {
       fetchHouseholdData();
     } else if (objectType === 'car') {
       fetchBatteryData();
+    } else if (objectType === 'chargingStation') {
+      fetchPriceData();
     }
   }, [objectType]);
 
@@ -49,6 +56,20 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
       setBatteryData(battery);
     } catch (error) {
       console.error('Failed to fetch battery data:', error);
+    }
+  };
+
+  const fetchPriceData = async () => {
+    try {
+      const priceInfo = await priceService.getCurrentPrice();
+      const priceStatus = priceService.getPriceStatus(priceInfo.currentPrice, priceInfo.hourlyPrices);
+      
+      setPriceData({
+        currentPrice: priceInfo.currentPrice,
+        priceStatus: priceStatus
+      });
+    } catch (error) {
+      console.error('Failed to fetch price data:', error);
     }
   };
 
@@ -82,7 +103,7 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
             'Modell: EVCharger Pro 11kW',
             'Maxeffekt: 11 kW',
             'Spänning: 400V 3-fas',
-            'Pris: 2.50 kr/kWh',
+            `Pris: ${priceService.formatPrice(priceData.currentPrice)}`,
             `Status: ${chargingStatus ? 'Aktivt laddning' : 'Ledig'}`
           ]
         };

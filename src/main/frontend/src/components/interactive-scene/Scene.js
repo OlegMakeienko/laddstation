@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
-import { timeService } from '../../services/api';
+import { timeService, priceService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
   const [selectedObject, setSelectedObject] = useState(null);
   const [chargingStatus, setChargingStatus] = useState(false);
   const [currentTime, setCurrentTime] = useState('--:--');
+  const [priceData, setPriceData] = useState({
+    currentPrice: 2.50,
+    priceStatus: 'Normalpris'
+  });
 
   const handleObjectClick = (objectType) => {
     setSelectedObject(objectType);
@@ -27,10 +31,30 @@ const Scene = () => {
     }
   };
 
-  // Hämta tid när komponenten laddas och sedan varje sekund
+  // Hämta prisdata från backend
+  const fetchPriceData = async () => {
+    try {
+      const priceInfo = await priceService.getCurrentPrice();
+      const priceStatus = priceService.getPriceStatus(priceInfo.currentPrice, priceInfo.hourlyPrices);
+      
+      setPriceData({
+        currentPrice: priceInfo.currentPrice,
+        priceStatus: priceStatus
+      });
+    } catch (error) {
+      console.error('Failed to fetch price data:', error);
+    }
+  };
+
+  // Hämta tid och pris när komponenten laddas och sedan varje sekund
   useEffect(() => {
     fetchTime();
-    const interval = setInterval(fetchTime, 1000); // Uppdatera varje sekund
+    fetchPriceData();
+    
+    const interval = setInterval(() => {
+      fetchTime();
+      fetchPriceData();
+    }, 1000); // Uppdatera varje sekund
     
     return () => clearInterval(interval);
   }, []);
@@ -124,8 +148,8 @@ const Scene = () => {
             </div>
             <div className="info-panel-content">
               <div className="price-info">
-                <span className="current-price">2.50 kr/kWh</span>
-                <span className="price-status">Normalpris</span>
+                <span className="current-price">{priceService.formatPrice(priceData.currentPrice)}</span>
+                <span className="price-status">{priceData.priceStatus}</span>
               </div>
             </div>
           </div>
