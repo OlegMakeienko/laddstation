@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
-import { timeService, priceService, chargingOptimizationService } from '../../services/api';
+import { timeService, priceService, chargingOptimizationService, homeBatteryService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
   const [selectedObject, setSelectedObject] = useState(null);
   const [chargingStatus, setChargingStatus] = useState(false);
   const [currentTime, setCurrentTime] = useState('--:--');
-  const [priceData, setPriceData] = useState({
-    currentPrice: 2.50,
-    priceStatus: 'Normalpris'
+  // const [priceData, setPriceData] = useState({
+  //   currentPrice: 2.50,
+  //   priceStatus: 'Normalpris'
+  // });
+  const [homeBatteryData, setHomeBatteryData] = useState({
+    batteryLevel: 85,
+    healthStatus: 'Optimal',
+    reserveHours: 12.5,
+    v2hSafe: true
   });
   const [optimalChargingData, setOptimalChargingData] = useState({
     timeRange: '22:00 - 06:00',
@@ -35,18 +41,34 @@ const Scene = () => {
     }
   };
 
-  // Hämta prisdata från backend
-  const fetchPriceData = async () => {
+  // Hämta prisdata från backend (kommenterad)
+  // const fetchPriceData = async () => {
+  //   try {
+  //     const priceInfo = await priceService.getCurrentPrice();
+  //     const priceStatus = priceService.getPriceStatus(priceInfo.currentPrice, priceInfo.hourlyPrices);
+  //     
+  //     setPriceData({
+  //       currentPrice: priceInfo.currentPrice,
+  //       priceStatus: priceStatus
+  //     });
+  //   } catch (error) {
+  //     console.error('Failed to fetch price data:', error);
+  //   }
+  // };
+
+  // Hämta husbatteri data från backend
+  const fetchHomeBatteryData = async () => {
     try {
-      const priceInfo = await priceService.getCurrentPrice();
-      const priceStatus = priceService.getPriceStatus(priceInfo.currentPrice, priceInfo.hourlyPrices);
+      const batteryInfo = await homeBatteryService.getHomeBatteryStatus();
       
-      setPriceData({
-        currentPrice: priceInfo.currentPrice,
-        priceStatus: priceStatus
+      setHomeBatteryData({
+        batteryLevel: batteryInfo.batteryLevel,
+        healthStatus: batteryInfo.healthStatus,
+        reserveHours: batteryInfo.reserveHours,
+        v2hSafe: batteryInfo.v2hSafe
       });
     } catch (error) {
-      console.error('Failed to fetch price data:', error);
+      console.error('Failed to fetch home battery data:', error);
     }
   };
 
@@ -67,12 +89,14 @@ const Scene = () => {
   // Hämta alla data när komponenten laddas och sedan varje sekund
   useEffect(() => {
     fetchTime();
-    fetchPriceData();
+    // fetchPriceData(); // Kommenterad
+    fetchHomeBatteryData();
     fetchOptimalChargingData();
     
     const interval = setInterval(() => {
       fetchTime();
-      fetchPriceData();
+      // fetchPriceData(); // Kommenterad
+      fetchHomeBatteryData();
       fetchOptimalChargingData();
     }, 1000); // Uppdatera varje sekund
     
@@ -164,12 +188,19 @@ const Scene = () => {
         <div className="top-info-panels">
           <div className="info-panel horizontal-panel price-panel">
             <div className="info-panel-header">
-              <h3>💰 Pris per kWh</h3>
+              <h3>🔋 Husbatteri Status</h3>
             </div>
             <div className="info-panel-content">
               <div className="price-info">
+                {/* Kommenterad prisdata:
                 <span className="current-price">{priceService.formatPrice(priceData.currentPrice)}</span>
-                <span className="price-status">{priceData.priceStatus}</span>
+                <span className="price-status">{priceData.priceStatus}</span> */}
+                <span className="current-price">
+                  {homeBatteryService.formatBatteryLevel(homeBatteryData?.batteryLevel)}
+                </span>
+                <span className="price-status">
+                  {homeBatteryService.getHealthIcon(homeBatteryData?.healthStatus)} {homeBatteryData?.healthStatus || 'Laddar...'}
+                </span>
               </div>
             </div>
           </div>

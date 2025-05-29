@@ -22,4 +22,20 @@ public class InfoResponse {
 
     @JsonProperty("ev_batt_max_capacity_kwh")
     private double evBattMaxCapacityKwh;
+
+    // Home Battery fields
+    @JsonProperty("home_batt_capacity_kwh")
+    private double homeBattCapacityKwh;
+
+    @JsonProperty("home_batt_max_capacity_kwh")
+    private double homeBattMaxCapacityKwh;
+
+    @JsonProperty("home_batt_min_capacity_kwh")
+    private double homeBattMinCapacityKwh;
+
+    @JsonProperty("home_batt_capacity_percent")
+    private double homeBattCapacityPercent;
+
+    @JsonProperty("home_battery_mode")
+    private String homeBatteryMode; // "idle", "charging", "discharging"
 }

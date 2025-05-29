@@ -16,11 +16,13 @@ public class ChargingServiceImpl implements ChargingService {
     private final LaddstationApiClient apiClient;
     private final BatteryManager batteryManager;
     private final ChargingHourOptimizer chargingHourOptimizer;
+    private final HomeBatteryManager homeBatteryManager;
 
-    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer) {
+    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer, HomeBatteryManager homeBatteryManager) {
         this.apiClient = apiClient;
         this.batteryManager = batteryManager;
         this.chargingHourOptimizer = chargingHourOptimizer;
+        this.homeBatteryManager = homeBatteryManager;
     }
 
     @Override
@@ -38,11 +40,73 @@ public class ChargingServiceImpl implements ChargingService {
             // Skriv ut objektets data i ett strukturerat format
             System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
             System.out.println("Household Load: " + infoResponse.getHouseholdLoadKwh() + " kW");
+            
+            // EV Battery information
             System.out.println("EV Battery Energy: " + infoResponse.getBatteryEnergyKwh() + " kWh");
             System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
             System.out.println("EV Battery Max Capacity: " + infoResponse.getEvBattMaxCapacityKwh() + " kWh");
+            
+            // Home Battery information
+            System.out.println("Home Battery Energy: " + infoResponse.getHomeBattCapacityKwh() + " kWh");
+            System.out.println("Home Battery Capacity: " + infoResponse.getHomeBattCapacityPercent() + "%");
+            System.out.println("Home Battery Max Capacity: " + infoResponse.getHomeBattMaxCapacityKwh() + " kWh");
+            System.out.println("Home Battery Min Capacity: " + infoResponse.getHomeBattMinCapacityKwh() + " kWh");
+            System.out.println("Home Battery Mode: " + infoResponse.getHomeBatteryMode());
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
+        }
+    }
+
+    @Override
+    public void displayHomeBatteryStatus() {
+        try {
+            InfoResponse info = apiClient.getInfo();
+            if (info == null) {
+                System.out.println("Failed to fetch home battery info from server.");
+                return;
+            }
+
+            System.out.println("\n=== HUSBATTERI STATUS ===");
+            System.out.println("Batterinivå: " + info.getHomeBattCapacityPercent() + "%");
+            System.out.println("Aktuell energi: " + info.getHomeBattCapacityKwh() + " kWh");
+            System.out.println("Max kapacitet: " + info.getHomeBattMaxCapacityKwh() + " kWh");
+            System.out.println("Min säker nivå: " + info.getHomeBattMinCapacityKwh() + " kWh");
+            System.out.println("Läge: " + info.getHomeBatteryMode());
+
+            // Hämta detaljerad status med säkerhetsinformation
+            try {
+                com.makeienko.laddstation.dto.HomeBatteryStatus status = homeBatteryManager.getHomeBatteryStatus();
+                System.out.println("Hälsostatus: " + status.getHealthStatus());
+                System.out.println("Reservkraft: " + String.format("%.1f", status.getReserveHours()) + " timmar");
+
+                // Visa total tillgänglig energi
+                double totalEnergy = homeBatteryManager.calculateTotalAvailableEnergy(info);
+                System.out.println("Total tillgänglig energi (EV + Hus): " + String.format("%.2f", totalEnergy) + " kWh");
+
+                // Visa säkerhetsvarningar
+                String[] warnings = homeBatteryManager.generateSafetyWarnings(info);
+                if (warnings.length > 0) {
+                    System.out.println("\n⚠️ SÄKERHETSVARNINGAR:");
+                    for (String warning : warnings) {
+                        System.out.println("  " + warning);
+                    }
+                } else {
+                    System.out.println("✅ Inga varningar - systemet är säkert");
+                }
+
+                // V2H säkerhetsstatus
+                double evPercent = (info.getBatteryEnergyKwh() / info.getEvBattMaxCapacityKwh()) * 100;
+                boolean v2hSafe = homeBatteryManager.isSafeForV2H(evPercent, info.getHomeBattCapacityPercent());
+                System.out.println("V2H (Vehicle-to-Home) säkerhet: " + (v2hSafe ? "✅ Säkert" : "⚠️ Inte säkert"));
+
+            } catch (Exception e) {
+                System.err.println("Error getting detailed home battery status: " + e.getMessage());
+            }
+
+            System.out.println("========================\n");
+
+        } catch (Exception e) {
+            System.err.println("Error displaying home battery status: " + e.getMessage());
         }
     }
 

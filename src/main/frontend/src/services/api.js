@@ -147,4 +147,74 @@ export const chargingOptimizationService = {
       };
     }
   }
+};
+
+export const homeBatteryService = {
+  // Hämta husbatteri status från backend
+  async getHomeBatteryStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/home-battery`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Mappa backend-respons till frontend-format
+      return {
+        batteryLevel: data.capacityPercent,
+        capacityKwh: data.currentCapacityKwh,
+        maxCapacityKwh: data.maxCapacityKwh,
+        mode: data.mode,
+        healthStatus: data.healthStatus,
+        reserveHours: data.reserveHours,
+        totalAvailableEnergy: data.totalAvailableEnergy,
+        safetyWarnings: data.warnings || [],
+        v2hSafe: !data.lowBatteryWarning && !data.criticalBattery
+      };
+    } catch (error) {
+      console.error('Error fetching home battery status from backend:', error);
+      // Fallback data om backend inte är tillgängligt
+      return {
+        batteryLevel: 85,
+        capacityKwh: 11.5,
+        maxCapacityKwh: 13.5,
+        mode: 'idle',
+        healthStatus: 'Optimal',
+        reserveHours: 12.5,
+        totalAvailableEnergy: 32.3,
+        safetyWarnings: [],
+        v2hSafe: true
+      };
+    }
+  },
+
+  // Formatera batterinivå
+  formatBatteryLevel(level) {
+    if (level === null || level === undefined) return '--';
+    return `${level.toFixed(0)}%`;
+  },
+
+  // Formatera kapacitet
+  formatCapacity(capacity) {
+    if (capacity === null || capacity === undefined) return '--';
+    return `${capacity.toFixed(1)} kWh`;
+  },
+
+  // Formatera reservtimmar
+  formatReserveHours(hours) {
+    if (hours === null || hours === undefined) return '--';
+    return `${hours.toFixed(1)}h`;
+  },
+
+  // Få ikone baserat på hälsostatus
+  getHealthIcon(healthStatus) {
+    if (!healthStatus) return '❓';
+    switch (healthStatus) {
+      case 'Optimal': return '✅';
+      case 'Bra': return '🟢';
+      case 'Låg - Varning': return '⚠️';
+      case 'Kritisk': return '🔴';
+      default: return '❓';
+    }
+  }
 }; 

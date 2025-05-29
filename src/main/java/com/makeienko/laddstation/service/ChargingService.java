@@ -10,6 +10,7 @@ public interface ChargingService {
 
     InfoResponse fetchAndDeserializeInfo();
     void displayInfoResponse();
+    void displayHomeBatteryStatus();
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
     void chargeBatteryDirect();
