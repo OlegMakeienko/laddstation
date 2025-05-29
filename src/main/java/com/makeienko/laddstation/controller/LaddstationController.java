@@ -47,6 +47,19 @@ public class LaddstationController {
     }
 
     /**
+     * Hämtar hushållets basförbrukning per timme
+     */
+    @GetMapping("/baseload")
+    public ResponseEntity<double[]> getBaseload() {
+        try {
+            double[] baseload = apiClient.getBaseload();
+            return ResponseEntity.ok(baseload);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * DTO för att returnera bara tid-information
      */
     public static class TimeResponse {

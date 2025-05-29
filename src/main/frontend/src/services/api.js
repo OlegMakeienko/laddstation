@@ -27,4 +27,35 @@ export const timeService = {
     const m = Math.floor(minute);
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   }
+};
+
+export const householdService = {
+  // Hämta hushållsförbrukning per timme
+  async getBaseload() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/baseload`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching baseload from backend:', error);
+      // Fallback data om backend inte är tillgängligt
+      return Array(24).fill(0).map(() => Math.random() * 5 + 2); // 2-7 kWh
+    }
+  },
+
+  // Beräkna aktuell förbrukning baserat på tid
+  getCurrentConsumption(baseloadArray, currentHour) {
+    if (!baseloadArray || baseloadArray.length === 0) return 0;
+    const hour = Math.floor(currentHour) % 24;
+    return baseloadArray[hour] || 0;
+  },
+
+  // Beräkna dagens totala förbrukning
+  getTotalDailyConsumption(baseloadArray) {
+    if (!baseloadArray || baseloadArray.length === 0) return 0;
+    return baseloadArray.reduce((sum, hourly) => sum + hourly, 0);
+  }
 }; 

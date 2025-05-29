@@ -1,18 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { householdService, timeService } from '../../services/api';
 import './InfoPanel.css';
 
 const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) => {
+  const [householdData, setHouseholdData] = useState({
+    currentConsumption: 0,
+    dailyTotal: 0,
+    baseloadArray: []
+  });
+
+  // Hämta hushållsdata när house-panel öppnas
+  useEffect(() => {
+    if (objectType === 'house') {
+      fetchHouseholdData();
+    }
+  }, [objectType]);
+
+  const fetchHouseholdData = async () => {
+    try {
+      const baseload = await householdService.getBaseload();
+      const timeData = await timeService.getCurrentTime();
+      
+      const currentConsumption = householdService.getCurrentConsumption(baseload, timeData.hour);
+      const dailyTotal = householdService.getTotalDailyConsumption(baseload);
+      
+      setHouseholdData({
+        currentConsumption: currentConsumption.toFixed(2),
+        dailyTotal: dailyTotal.toFixed(1),
+        baseloadArray: baseload
+      });
+    } catch (error) {
+      console.error('Failed to fetch household data:', error);
+    }
+  };
+
   const getObjectInfo = () => {
     switch (objectType) {
       case 'house':
         return {
           title: '🏠 Smart Hus',
           info: [
-            'Energiförbrukning: 15 kWh/dag',
-            'Solpaneler: 8 kW installerat',
-            'Energiproduktion idag: 32 kWh',
-            'Nettoexport: +17 kWh',
-            'Status: Producerar överskott'
+            `Aktuell förbrukning: ${householdData.currentConsumption} kWh`,
+            `Dagens totala förbrukning: ${householdData.dailyTotal} kWh`,
+            'Solpaneler: ',
+            'Energiproduktion idag: ',
+            'Nettoexport: ',
+            'Status: '
           ]
         };
       case 'car':
