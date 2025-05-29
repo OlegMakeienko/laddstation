@@ -125,4 +125,26 @@ export const priceService = {
       return 'Normalpris';
     }
   }
+};
+
+export const chargingOptimizationService = {
+  // Hämta optimala laddningstider från backend
+  async getOptimalChargingHours() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/optimal-charging-hours`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching optimal charging hours from backend:', error);
+      // Fallback data om backend inte är tillgängligt
+      return {
+        optimalHours: [22, 23, 0, 1, 2, 3, 4, 5],
+        strategy: 'Låg förbrukning',
+        timeRange: '22:00 - 06:00'
+      };
+    }
+  }
 }; 

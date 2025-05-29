@@ -51,13 +51,10 @@ public class ChargingHourOptimizer {
         double[] hourlyBaseload = apiClient.getBaseload();
         List<Double> safeHours = new ArrayList<>();
 
-        System.out.println("Finding all safe hours for consumption-based strategy (Total Load <= " + MAX_TOTAL_LOAD + " kW):");
-
         for (int hour = 0; hour < hourlyBaseload.length; hour++) {
             double totalLoad = hourlyBaseload[hour] + CHARGING_POWER;
             if (totalLoad <= MAX_TOTAL_LOAD) {
                 safeHours.add((double) hour);
-                System.out.println("Hour " + hour + " is safe. Total load: " + String.format("%.2f", totalLoad) + " kW");
             }
         }
 
@@ -115,10 +112,6 @@ public class ChargingHourOptimizer {
             if (totalLoad <= MAX_TOTAL_LOAD) {
                 double price = (hourlyPrices != null) ? hourlyPrices[hour] : 0.0;
                 safeHours.add(new HourPrice(hour, price, totalLoad));
-                
-                System.out.println("Hour " + hour + " is safe for charging with total load: " 
-                    + String.format("%.2f", totalLoad) + " kW"
-                    + (hourlyPrices != null ? ", price: " + String.format("%.2f", price) + " kr/kWh" : ""));
             }
         }
         
@@ -134,17 +127,9 @@ public class ChargingHourOptimizer {
         
         int hoursToSelect = Math.min(hoursNeeded, sortedHours.size());
         
-        System.out.println("Selecting " + hoursToSelect + " optimal hours out of " 
-            + sortedHours.size() + " safe hours:");
-        
         for (int i = 0; i < hoursToSelect; i++) {
             HourPrice hourPrice = sortedHours.get(i);
             optimalHours.add((double) hourPrice.getHour());
-            
-            System.out.println("Selected hour " + hourPrice.getHour() 
-                + " - Total load: " + String.format("%.2f", hourPrice.getTotalLoad()) + " kW"
-                // Lägg till prisinformation för konsistens, även om den är 0 för konsumtionsstrategin i selectBestHours
-                + (hourPrice.getPrice() > 0 ? ", Cost: " + String.format("%.2f", hourPrice.getCost()) + " kr" : "") );
         }
         
         return optimalHours;

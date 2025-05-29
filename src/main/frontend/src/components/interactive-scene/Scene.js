@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
-import { timeService, priceService } from '../../services/api';
+import { timeService, priceService, chargingOptimizationService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
@@ -10,6 +10,10 @@ const Scene = () => {
   const [priceData, setPriceData] = useState({
     currentPrice: 2.50,
     priceStatus: 'Normalpris'
+  });
+  const [optimalChargingData, setOptimalChargingData] = useState({
+    timeRange: '22:00 - 06:00',
+    strategy: 'Låg förbrukning'
   });
 
   const handleObjectClick = (objectType) => {
@@ -46,14 +50,30 @@ const Scene = () => {
     }
   };
 
-  // Hämta tid och pris när komponenten laddas och sedan varje sekund
+  // Hämta optimala laddningstider från backend
+  const fetchOptimalChargingData = async () => {
+    try {
+      const chargingInfo = await chargingOptimizationService.getOptimalChargingHours();
+      
+      setOptimalChargingData({
+        timeRange: chargingInfo.timeRange,
+        strategy: chargingInfo.strategy
+      });
+    } catch (error) {
+      console.error('Failed to fetch optimal charging data:', error);
+    }
+  };
+
+  // Hämta alla data när komponenten laddas och sedan varje sekund
   useEffect(() => {
     fetchTime();
     fetchPriceData();
+    fetchOptimalChargingData();
     
     const interval = setInterval(() => {
       fetchTime();
       fetchPriceData();
+      fetchOptimalChargingData();
     }, 1000); // Uppdatera varje sekund
     
     return () => clearInterval(interval);
@@ -171,8 +191,8 @@ const Scene = () => {
             </div>
             <div className="info-panel-content">
               <div className="time-info">
-                <span className="best-time">22:00 - 06:00</span>
-                <span className="time-status">Låg förbrukning</span>
+                <span className="best-time">{optimalChargingData.timeRange}</span>
+                <span className="time-status">{optimalChargingData.strategy}</span>
               </div>
             </div>
           </div>

@@ -1,9 +1,13 @@
 package com.makeienko.laddstation.controller;
 
-import com.makeienko.laddstation.dto.InfoResponse;
+import com.makeienko.laddstation.dto.*;
 import com.makeienko.laddstation.service.LaddstationApiClient;
+import com.makeienko.laddstation.service.ChargingHourOptimizer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api")
@@ -11,9 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class LaddstationController {
 
     private final LaddstationApiClient apiClient;
+    private final ChargingHourOptimizer chargingHourOptimizer;
 
-    public LaddstationController(LaddstationApiClient apiClient) {
+    public LaddstationController(LaddstationApiClient apiClient, ChargingHourOptimizer chargingHourOptimizer) {
         this.apiClient = apiClient;
+        this.chargingHourOptimizer = chargingHourOptimizer;
     }
 
     /**
@@ -72,51 +78,6 @@ public class LaddstationController {
     }
 
     /**
-     * DTO för batteristatus
-     */
-    public static class BatteryStatusResponse {
-        private double percentage;
-        private double currentEnergyKwh;
-        private double maxCapacityKwh;
-        private boolean isCharging;
-
-        public BatteryStatusResponse(double percentage, double currentEnergyKwh, double maxCapacityKwh, boolean isCharging) {
-            this.percentage = percentage;
-            this.currentEnergyKwh = currentEnergyKwh;
-            this.maxCapacityKwh = maxCapacityKwh;
-            this.isCharging = isCharging;
-        }
-
-        public double getPercentage() { return percentage; }
-        public double getCurrentEnergyKwh() { return currentEnergyKwh; }
-        public double getMaxCapacityKwh() { return maxCapacityKwh; }
-        public boolean isCharging() { return isCharging; }
-        
-        public void setPercentage(double percentage) { this.percentage = percentage; }
-        public void setCurrentEnergyKwh(double currentEnergyKwh) { this.currentEnergyKwh = currentEnergyKwh; }
-        public void setMaxCapacityKwh(double maxCapacityKwh) { this.maxCapacityKwh = maxCapacityKwh; }
-        public void setCharging(boolean charging) { isCharging = charging; }
-    }
-
-    /**
-     * DTO för att returnera bara tid-information
-     */
-    public static class TimeResponse {
-        private double hour;
-        private double minute;
-
-        public TimeResponse(double hour, double minute) {
-            this.hour = hour;
-            this.minute = minute;
-        }
-
-        public double getHour() { return hour; }
-        public double getMinute() { return minute; }
-        public void setHour(double hour) { this.hour = hour; }
-        public void setMinute(double minute) { this.minute = minute; }
-    }
-
-    /**
      * Hämtar hushållets basförbrukning per timme
      */
     @GetMapping("/baseload")
@@ -154,25 +115,105 @@ public class LaddstationController {
     }
 
     /**
-     * DTO för aktuellt timpris
+     * Hämtar optimala laddningstider baserat på förbrukning
      */
-    public static class CurrentPriceResponse {
-        private double currentPrice;
-        private int currentHour;
-        private double[] hourlyPrices;
-
-        public CurrentPriceResponse(double currentPrice, int currentHour, double[] hourlyPrices) {
-            this.currentPrice = currentPrice;
-            this.currentHour = currentHour;
-            this.hourlyPrices = hourlyPrices;
+    @GetMapping("/optimal-charging-hours")
+    public ResponseEntity<OptimalChargingResponse> getOptimalChargingHours() {
+        try {
+            List<Double> optimalHours = chargingHourOptimizer.findOptimalHoursByConsumption();
+            
+            OptimalChargingResponse response = new OptimalChargingResponse(
+                optimalHours,
+                "Låg förbrukning",
+                formatOptimalHoursRange(optimalHours)
+            );
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
+    }
 
-        public double getCurrentPrice() { return currentPrice; }
-        public int getCurrentHour() { return currentHour; }
-        public double[] getHourlyPrices() { return hourlyPrices; }
+    /**
+     * Formatera optimala timmar till ett läsbart tidsintervall
+     */
+    private String formatOptimalHoursRange(List<Double> optimalHours) {
+        if (optimalHours.isEmpty()) {
+            return "Ingen optimal tid";
+        }
         
-        public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
-        public void setCurrentHour(int currentHour) { this.currentHour = currentHour; }
-        public void setHourlyPrices(double[] hourlyPrices) { this.hourlyPrices = hourlyPrices; }
+        // Konvertera till integers och sortera
+        List<Integer> hours = optimalHours.stream()
+            .mapToInt(Double::intValue)
+            .sorted()
+            .boxed()
+            .toList();
+        
+        if (hours.size() == 1) {
+            return String.format("%02d:00", hours.get(0));
+        }
+        
+        // Hitta det längsta sammanhängande intervallet som inkluderar nattetid
+        List<Integer> nightHours = new ArrayList<>();
+        List<Integer> dayHours = new ArrayList<>();
+        
+        for (int hour : hours) {
+            if (hour >= 22 || hour <= 6) {
+                nightHours.add(hour);
+            } else {
+                dayHours.add(hour);
+            }
+        }
+        
+        // Prioritera nattetid om det finns fler än 3 nattetimmar
+        if (nightHours.size() >= 3) {
+            int startHour = nightHours.stream().filter(h -> h >= 22).min(Integer::compareTo).orElse(22);
+            int endHour = nightHours.stream().filter(h -> h <= 6).max(Integer::compareTo).orElse(6);
+            
+            if (startHour >= 22 && endHour <= 6) {
+                return String.format("%02d:00 - %02d:00", startHour, endHour + 1);
+            }
+        }
+        
+        // Annars visa bästa sammanhängande intervall
+        List<List<Integer>> intervals = findContiguousIntervals(hours);
+        List<Integer> longestInterval = intervals.stream()
+            .max((a, b) -> Integer.compare(a.size(), b.size()))
+            .orElse(hours);
+        
+        if (longestInterval.size() >= 2) {
+            int start = longestInterval.get(0);
+            int end = longestInterval.get(longestInterval.size() - 1);
+            return String.format("%02d:00 - %02d:00", start, end + 1);
+        }
+        
+        // Fallback: visa antal timmar
+        return hours.size() + " optimala timmar";
+    }
+    
+    /**
+     * Hitta sammanhängande tidsintervall
+     */
+    private List<List<Integer>> findContiguousIntervals(List<Integer> hours) {
+        List<List<Integer>> intervals = new ArrayList<>();
+        List<Integer> currentInterval = new ArrayList<>();
+        
+        for (int i = 0; i < hours.size(); i++) {
+            if (currentInterval.isEmpty()) {
+                currentInterval.add(hours.get(i));
+            } else if (hours.get(i) == currentInterval.get(currentInterval.size() - 1) + 1) {
+                currentInterval.add(hours.get(i));
+            } else {
+                intervals.add(new ArrayList<>(currentInterval));
+                currentInterval.clear();
+                currentInterval.add(hours.get(i));
+            }
+        }
+        
+        if (!currentInterval.isEmpty()) {
+            intervals.add(currentInterval);
+        }
+        
+        return intervals;
     }
 } 
