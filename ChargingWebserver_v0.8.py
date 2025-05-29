@@ -35,6 +35,14 @@ ev_batt_energy_consumption=226 #kWh per km = 2260 per swedish mil
 #ev_battery_charge_start_stopp=False
 ev_battery_charge_start_stopp=False
 
+#Home Battery (Tesla Powerwall-like system)
+home_batt_max_capacity=13.5 # kWh (typical home battery size)
+home_batt_min_capacity_percent=10 # % (minimum to prevent damage)
+home_batt_capacity_percent=85 # % (start with good charge)
+home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
+home_batt_min_capacity_kWh=home_batt_min_capacity_percent/100*home_batt_max_capacity
+home_battery_charge_discharge_mode="idle" # "charging", "discharging", "idle"
+
 #Charging station
 charging_station_info= {"Power":"7.4"} #EV version 2 charger
 charging_power=7.4 # kW pchmax from car manufacturer
@@ -59,15 +67,33 @@ def main_prg():
     global ev_batt_max_capacity
     global current_household_load_kwh # Använd det nya namnet
     global seconds_per_hour
+    global home_batt_capacity_percent
+    global home_batt_capacity_kWh
+    global home_batt_max_capacity
+    global home_batt_min_capacity_kWh
+    global home_battery_charge_discharge_mode
+    
     while True:
         current_household_load_kwh = base_load_residential_kwh[sim_hour] # Uppdatera bara hushållets last
         for i in range(0,seconds_per_hour):
+            # EV Battery charging logic
             if ev_battery_charge_start_stopp:
                 if ev_batt_capacity_percent <110.0:
                     ev_batt_capacity_kWh=ev_batt_capacity_kWh+charging_power/seconds_per_hour
                     ev_batt_capacity_kWh=round(ev_batt_capacity_kWh,2)
                     # Ta bort: base_current_load uppdateras inte med charging_power här
                     ev_batt_capacity_percent=round(ev_batt_capacity_kWh/ev_batt_max_capacity*100,2)
+            
+            # Home Battery simulation (simplified - can be expanded later)
+            # For now, just ensure it stays within safe limits
+            if home_batt_capacity_kWh < home_batt_min_capacity_kWh:
+                home_battery_charge_discharge_mode = "idle"  # Stop discharging if too low
+            
+            if home_batt_capacity_kWh > home_batt_max_capacity:
+                home_batt_capacity_kWh = home_batt_max_capacity  # Cap at max
+            
+            home_batt_capacity_percent = round(home_batt_capacity_kWh/home_batt_max_capacity*100,2)
+            
             sim_min=int(round((60/seconds_per_hour*i)%60,0))
             time.sleep(1)
         sim_hour=(sim_hour+1)%24
@@ -105,7 +131,12 @@ def station_info():
             "household_load_kwh": current_household_load_kwh, # Detta är bara hushållet
             "battery_energy_kwh": ev_batt_capacity_kWh,    # Detta är bilens batteri kWh
             "ev_battery_charge_start_stopp": ev_battery_charge_start_stopp,
-            "ev_batt_max_capacity_kwh": ev_batt_max_capacity
+            "ev_batt_max_capacity_kwh": ev_batt_max_capacity,
+            "home_batt_capacity_kwh": home_batt_capacity_kWh,
+            "home_batt_max_capacity_kwh": home_batt_max_capacity,
+            "home_batt_min_capacity_kwh": home_batt_min_capacity_kWh,
+            "home_batt_capacity_percent": home_batt_capacity_percent,
+            "home_battery_mode": home_battery_charge_discharge_mode
         }
         return (json.dumps(response_data),{"Access-Control-Allow-Origin":"*"})
     else:
@@ -169,6 +200,10 @@ def discharge_battery():
     global ev_batt_capacity_kWh
     global sim_hour
     global sim_min
+    global home_batt_capacity_percent
+    global home_batt_capacity_kWh
+    global home_batt_max_capacity
+    global home_battery_charge_discharge_mode
 
     if request.method == 'POST':
         try:
@@ -189,6 +224,10 @@ def discharge_battery():
                     ev_batt_max_capacity=46.3   # kWh
                     ev_batt_capacity_percent=20 #
                     ev_batt_capacity_kWh=ev_batt_capacity_percent/100*ev_batt_max_capacity
+                    #Home Battery reset
+                    home_batt_capacity_percent=85 # % (reset to good charge)
+                    home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
+                    home_battery_charge_discharge_mode="idle"
                     sim_hour=0
                     sim_min=0
                     output_data = {'discharging': 'on' }
