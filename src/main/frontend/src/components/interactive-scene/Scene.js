@@ -95,6 +95,45 @@ const Scene = () => {
           {/* Interactive hints */}
         </svg>
 
+        {/* Static info panels at top */}
+        <div className="top-info-panels">
+          <div className="info-panel horizontal-panel price-panel">
+            <div className="info-panel-header">
+              <h3>💰 Pris per kWh</h3>
+            </div>
+            <div className="info-panel-content">
+              <div className="price-info">
+                <span className="current-price">2.50 kr/kWh</span>
+                <span className="price-status">Normalpris</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-panel horizontal-panel clock-panel">
+            <div className="info-panel-header">
+              <h3>🕐 Klockan är</h3>
+            </div>
+            <div className="info-panel-content">
+              <div className="clock-info">
+                <span className="current-time">{new Date().toLocaleTimeString('sv-SE', {hour: '2-digit', minute: '2-digit'})}</span>
+                <span className="date-status">{new Date().toLocaleDateString('sv-SE', {weekday: 'short'})}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-panel horizontal-panel time-panel">
+            <div className="info-panel-header">
+              <h3>⏰ Bra tid för laddning</h3>
+            </div>
+            <div className="info-panel-content">
+              <div className="time-info">
+                <span className="best-time">22:00 - 06:00</span>
+                <span className="time-status">Låg förbrukning</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Info Panel */}
         {selectedObject && (
           <InfoPanel 

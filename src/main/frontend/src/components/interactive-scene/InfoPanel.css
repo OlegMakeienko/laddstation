@@ -19,7 +19,7 @@
 
 .info-panel.car-panel {
   right: -100px;
-  bottom: -70px;
+  bottom: -50px;
   top: auto;
   animation: slideInRight 0.3s ease-out;
 }
@@ -211,4 +211,121 @@
       opacity: 1;
     }
   }
+}
+
+/* Top horizontal panels - separated positioning */
+.price-panel {
+  position: absolute;
+  top: -70px;
+  left: 0;
+  width: 210px;
+  height: 60px;
+  background: white;
+  z-index: 50;
+  animation: slideDown 0.5s ease-out;
+}
+
+.time-panel {
+  position: absolute;
+  top: -70px;
+  right: 80px;
+  width: 210px;
+  height: 60px;
+  background: white;
+  z-index: 50;
+  animation: slideDown 0.5s ease-out;
+}
+
+.horizontal-panel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.horizontal-panel .info-panel-header {
+  padding: 8px 15px;
+  font-size: 14px;
+  border-radius: 10px 0 0 10px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.horizontal-panel .info-panel-content {
+  padding: 8px 15px;
+  text-align: center;
+  background: white;
+  border-radius: 0 10px 10px 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.horizontal-panel .info-panel-header h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.price-info, .time-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.current-price, .best-time {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.price-status, .time-status {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.clock-panel {
+  position: absolute;
+  top: -70px;
+  left: 48%;
+  transform: translateX(-50%);
+  width: 210px;
+  height: 60px;
+  background: white;
+  z-index: 50;
+  animation: slideDown 0.5s ease-out;
+}
+
+.clock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.current-time {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.date-status {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 } 

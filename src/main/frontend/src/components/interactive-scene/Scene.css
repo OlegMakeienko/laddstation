@@ -10,6 +10,7 @@
 
 .scene-wrapper {
   position: relative;
+  margin-top: 50px;
   width: 90%;
   max-width: 900px;
   height: 80vh;
