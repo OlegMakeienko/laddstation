@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
+import { timeService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
   const [selectedObject, setSelectedObject] = useState(null);
   const [chargingStatus, setChargingStatus] = useState(false);
+  const [currentTime, setCurrentTime] = useState('--:--');
 
   const handleObjectClick = (objectType) => {
     setSelectedObject(objectType);
@@ -13,6 +15,25 @@ const Scene = () => {
   const toggleCharging = () => {
     setChargingStatus(!chargingStatus);
   };
+
+  // Hämta tid från backend
+  const fetchTime = async () => {
+    try {
+      const timeData = await timeService.getCurrentTime();
+      const formattedTime = timeService.formatTime(timeData.hour, timeData.minute);
+      setCurrentTime(formattedTime);
+    } catch (error) {
+      console.error('Failed to fetch time:', error);
+    }
+  };
+
+  // Hämta tid när komponenten laddas och sedan varje sekund
+  useEffect(() => {
+    fetchTime();
+    const interval = setInterval(fetchTime, 1000); // Uppdatera varje sekund
+    
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="scene-container">
@@ -115,8 +136,7 @@ const Scene = () => {
             </div>
             <div className="info-panel-content">
               <div className="clock-info">
-                <span className="current-time">{new Date().toLocaleTimeString('sv-SE', {hour: '2-digit', minute: '2-digit'})}</span>
-                <span className="date-status">{new Date().toLocaleDateString('sv-SE', {weekday: 'short'})}</span>
+                <span className="current-time">{currentTime}</span>
               </div>
             </div>
           </div>
