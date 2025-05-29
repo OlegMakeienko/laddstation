@@ -10,7 +10,49 @@
   animation: slideIn 0.3s ease-out;
 }
 
+.info-panel.house-panel {
+  left: -220px;
+  right: auto;
+  animation: slideInLeft 0.3s ease-out;
+  z-index: 100;
+}
+
+.info-panel.car-panel {
+  right: -100px;
+  bottom: -70px;
+  top: auto;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.info-panel.station-panel {
+  right: -220px;
+  top: 20px;
+  animation: slideInRight 0.3s ease-out;
+}
+
 @keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
   from {
     transform: translateX(100%);
     opacity: 0;

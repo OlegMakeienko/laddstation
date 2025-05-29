@@ -44,8 +44,21 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
 
   const { title, info } = getObjectInfo();
 
+  const getPanelClass = () => {
+    switch (objectType) {
+      case 'house':
+        return 'house-panel';
+      case 'car':
+        return 'car-panel';
+      case 'chargingStation':
+        return 'station-panel';
+      default:
+        return '';
+    }
+  };
+
   return (
-    <div className="info-panel">
+    <div className={`info-panel ${getPanelClass()}`}>
       <div className="info-panel-header">
         <h3>{title}</h3>
         <button className="close-btn" onClick={onClose}>✕</button>
