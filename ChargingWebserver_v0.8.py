@@ -293,7 +293,37 @@ def discharge_battery():
         return jsonify({'message': 'This is a GET request. Use POST to reset the battery.'})
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
-    
+
+@app.route('/discharge-home-battery', methods=['POST', 'GET'])
+def discharge_home_battery():
+    global home_batt_capacity_percent
+    global home_batt_capacity_kWh
+    global home_batt_max_capacity
+    global home_battery_charge_discharge_mode
+
+    if request.method == 'POST':
+        try:
+            json_input = request.json
+            try:
+                discharg = json_input.get('discharging', 0)
+            except json.JSONDecodeError:
+                return json.dumps({'error': 'Invalid JSON input'})
+            with global_lock:
+                if discharg=="on":
+                    # Ladda ur husbatteriet till 10%
+                    home_batt_capacity_percent = 10.0 # % (discharge to minimum safe level)
+                    home_batt_capacity_kWh = home_batt_capacity_percent/100*home_batt_max_capacity
+                    home_battery_charge_discharge_mode = "idle"
+                    output_data = {'home_battery_discharging': 'on', 'new_level': home_batt_capacity_percent}
+                    return json.dumps(output_data)
+                
+        except Exception as e:
+            return jsonify({'error': str(e)})
+    elif request.method == 'GET':
+        return jsonify({'message': 'This is a GET request. Use POST to discharge home battery to 10%.'})
+    else:
+        return jsonify({'error': 'Unsupported HTTP method'})
+
 # start the increment_sum thread
 increment_sum_thread = threading.Thread(target=main_prg)
 increment_sum_thread.start()

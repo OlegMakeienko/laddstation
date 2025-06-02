@@ -155,4 +155,20 @@ public class LaddstationApiClient {
             throw new ChargingServiceException("Failed to discharge battery: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Ladda ur husbatteriet till 10%
+     */
+    public String dischargeHomeBatteryTo10() {
+        try {
+            String response = restTemplate.postForObject(
+                    BASE_URL + "/discharge-home-battery",
+                    Map.of("discharging", "on"),
+                    String.class
+            );
+            return response;
+        } catch (Exception e) {
+            throw new ChargingServiceException("Failed to discharge home battery: " + e.getMessage(), e);
+        }
+    }
 } 

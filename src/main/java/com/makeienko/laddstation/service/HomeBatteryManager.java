@@ -134,4 +134,17 @@ public class HomeBatteryManager {
         
         return warnings.toArray(new String[0]);
     }
+
+    /**
+     * Ladda ur husbatteriet till 10% (för testning av off-grid scenarion)
+     */
+    public void dischargeHomeBatteryTo10Api() {
+        try {
+            System.out.println("HomeBatteryManager: Sending command to discharge home battery to 10%...");
+            String response = apiClient.dischargeHomeBatteryTo10();
+            System.out.println("HomeBatteryManager: Server response: " + response);
+        } catch (Exception e) {
+            System.err.println("HomeBatteryManager: Failed to discharge home battery: " + e.getMessage());
+        }
+    }
 } 

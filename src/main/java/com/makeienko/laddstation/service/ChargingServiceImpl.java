@@ -352,4 +352,19 @@ public class ChargingServiceImpl implements ChargingService {
             System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after discharge command.");
         }
     }
+
+    @Override
+    public void dischargeHomeBatteryTo10() {
+        System.out.println("ChargingServiceImpl: Initiating home battery discharge to 10%.");
+        homeBatteryManager.dischargeHomeBatteryTo10Api();
+        System.out.println("ChargingServiceImpl: Home battery discharge command sent to server.");
+        // Display battery status after a short delay
+        try {
+            Thread.sleep(2000); // Wait 2 seconds for server to process
+            displayInfoResponse();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after home battery discharge command.");
+        }
+    }
 }
