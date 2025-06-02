@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import InfoPanel from './InfoPanel';
-import { timeService, priceService, chargingOptimizationService, homeBatteryService, solarPanelService } from '../../services/api';
+import { timeService, priceService, chargingOptimizationService, homeBatteryService, solarPanelService, batteryService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
@@ -29,12 +29,54 @@ const Scene = () => {
     strategy: 'Låg förbrukning'
   });
 
+  // Batteristatus för visuella indikatorer
+  const [evBatteryData, setEvBatteryData] = useState({
+    percentage: 20,
+    energyKwh: 9.26,
+    maxCapacityKwh: 46.3,
+    isCharging: false
+  });
+
+  const [homeBatteryDisplayData, setHomeBatteryDisplayData] = useState({
+    percentage: 85,
+    energyKwh: 11.5,
+    maxCapacityKwh: 13.5,
+    healthStatus: 'Optimal'
+  });
+
   const handleObjectClick = (objectType) => {
     setSelectedObject(objectType);
   };
 
   const toggleCharging = () => {
     setChargingStatus(!chargingStatus);
+  };
+
+  // Hjälpfunktioner för batterifärger
+  const getBatteryColor = (percentage) => {
+    if (percentage >= 80) return '#27ae60'; // Grön
+    if (percentage >= 60) return '#f1c40f'; // Gul
+    if (percentage >= 40) return '#f39c12'; // Orange
+    if (percentage >= 20) return '#e67e22'; // Mörkare orange
+    return '#e74c3c'; // Röd
+  };
+
+  const getBatteryStatusStyle = (percentage, isCharging = false) => {
+    let color = getBatteryColor(percentage);
+    let backgroundColor = `${color}20`; // 20% opacity
+    let borderColor = `${color}60`; // 60% opacity
+    
+    if (isCharging) {
+      color = '#27ae60';
+      backgroundColor = 'rgba(76, 175, 80, 0.1)';
+      borderColor = 'rgba(76, 175, 80, 0.3)';
+    }
+    
+    return {
+      color,
+      backgroundColor,
+      borderColor: `1px solid ${borderColor}`
+    };
   };
 
   // Hämta tid från backend
@@ -74,8 +116,35 @@ const Scene = () => {
         reserveHours: batteryInfo.reserveHours,
         v2hSafe: batteryInfo.v2hSafe
       });
+
+      // Uppdatera också display-data för visual indikator
+      setHomeBatteryDisplayData({
+        percentage: batteryInfo.batteryLevel || 85,
+        energyKwh: batteryInfo.capacityKwh || 11.5,
+        maxCapacityKwh: batteryInfo.maxCapacityKwh || 13.5,
+        healthStatus: batteryInfo.healthStatus || 'Optimal'
+      });
     } catch (error) {
       console.error('Failed to fetch home battery data:', error);
+    }
+  };
+
+  // Hämta EV batteri data från backend
+  const fetchEvBatteryData = async () => {
+    try {
+      const batteryInfo = await batteryService.getBatteryStatus();
+      
+      setEvBatteryData({
+        percentage: batteryInfo.percentage || 20,
+        energyKwh: batteryInfo.currentEnergyKwh || 9.26,
+        maxCapacityKwh: batteryInfo.maxCapacityKwh || 46.3,
+        isCharging: batteryInfo.isCharging || false
+      });
+
+      // Uppdatera charging status baserat på EV batteristatus
+      setChargingStatus(batteryInfo.isCharging || false);
+    } catch (error) {
+      console.error('Failed to fetch EV battery data:', error);
     }
   };
 
@@ -115,6 +184,7 @@ const Scene = () => {
     fetchTime();
     // fetchPriceData(); // Kommenterad
     fetchHomeBatteryData();
+    fetchEvBatteryData();
     fetchOptimalChargingData();
     fetchSolarData();
     
@@ -122,6 +192,7 @@ const Scene = () => {
       fetchTime();
       // fetchPriceData(); // Kommenterad
       fetchHomeBatteryData();
+      fetchEvBatteryData();
       fetchOptimalChargingData();
       fetchSolarData();
     }, 1000); // Uppdatera varje sekund
@@ -248,6 +319,51 @@ const Scene = () => {
                 <span className="best-time">{optimalChargingData.timeRange}</span>
                 <span className="time-status">{optimalChargingData.strategy}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Batteristatus-indikatorer på sidorna */}
+        <div className="battery-indicators">
+          {/* Husbatteri - vänster sida */}
+          <div className="battery-indicator home-battery">
+            <div className="battery-header">
+              <h4>🏠 Husbatteri</h4>
+            </div>
+            <div className="battery-visual">
+              <div className="battery-shell">
+                <div 
+                  className="battery-fill home-battery-fill"
+                  style={{height: `${homeBatteryDisplayData.percentage}%`}}
+                ></div>
+              </div>
+              <div className="battery-tip"></div>
+            </div>
+            <div className="battery-info">
+              <div className="battery-percentage" style={{color: getBatteryColor(homeBatteryDisplayData.percentage)}}>{homeBatteryDisplayData.percentage}%</div>
+              <div className="battery-capacity">{homeBatteryDisplayData.energyKwh.toFixed(1)}/{homeBatteryDisplayData.maxCapacityKwh} kWh</div>
+              <div className="battery-status" style={getBatteryStatusStyle(homeBatteryDisplayData.percentage)}>{homeBatteryDisplayData.healthStatus}</div>
+            </div>
+          </div>
+
+          {/* EV Batteri - höger sida */}
+          <div className="battery-indicator ev-battery">
+            <div className="battery-header">
+              <h4>🚗 EV Batteri</h4>
+            </div>
+            <div className="battery-visual">
+              <div className="battery-shell">
+                <div 
+                  className={`battery-fill ev-battery-fill ${evBatteryData.isCharging ? 'charging' : ''}`}
+                  style={{height: `${evBatteryData.percentage}%`}}
+                ></div>
+              </div>
+              <div className="battery-tip"></div>
+            </div>
+            <div className="battery-info">
+              <div className="battery-percentage" style={{color: getBatteryColor(evBatteryData.percentage)}}>{evBatteryData.percentage}%</div>
+              <div className="battery-capacity">{evBatteryData.energyKwh.toFixed(1)}/{evBatteryData.maxCapacityKwh} kWh</div>
+              <div className="battery-status" style={getBatteryStatusStyle(evBatteryData.percentage, evBatteryData.isCharging)}>{evBatteryData.isCharging ? '⚡ Laddar' : 'Redo'}</div>
             </div>
           </div>
         </div>

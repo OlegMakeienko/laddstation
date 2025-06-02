@@ -339,4 +339,267 @@
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Batteristatus-indikatorer */
+.battery-indicators {
+  position: absolute;
+  top: 75%;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.battery-indicator {
+  position: absolute;
+  width: 110px;
+  height: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 10px;
+  pointer-events: auto;
+  animation: slideInBattery 0.8s ease-out;
+}
+
+.battery-indicator.home-battery {
+  left: -140px;
+  transform: scale(0.9);
+}
+
+.battery-indicator.ev-battery {
+  right: -140px;
+  transform: scale(0.9);
+}
+
+.battery-header {
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.battery-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.battery-visual {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.battery-shell {
+  width: 60px;
+  height: 120px;
+  border: 3px solid #333;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.battery-tip {
+  width: 20px;
+  height: 8px;
+  background: #333;
+  border-radius: 0 0 3px 3px;
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.battery-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 0 0 5px 5px;
+  transition: all 0.5s ease;
+}
+
+.home-battery-fill {
+  background: linear-gradient(to top, 
+    #ff6b6b 0%, 
+    #feca57 30%, 
+    #48cae4 60%, 
+    #06d6a0 100%
+  );
+}
+
+.ev-battery-fill {
+  background: linear-gradient(to top, 
+    #e74c3c 0%, 
+    #f39c12 25%, 
+    #f1c40f 50%, 
+    #27ae60 75%, 
+    #2ecc71 100%
+  );
+}
+
+.ev-battery-fill.charging {
+  animation: chargingPulse 2s infinite;
+}
+
+.battery-info {
+  text-align: center;
+  width: 100%;
+}
+
+.battery-percentage {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.battery-capacity {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.battery-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+/* Färgkodning baserat på batterinivå */
+.battery-indicator.home-battery .battery-percentage {
+  color: var(--home-battery-color, #333);
+}
+
+.battery-indicator.ev-battery .battery-percentage {
+  color: var(--ev-battery-color, #333);
+}
+
+/* Animationer */
+@keyframes slideInBattery {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(0.9);
+  }
+}
+
+@keyframes chargingPulse {
+  0%, 100% { 
+    opacity: 1;
+    box-shadow: 0 0 0 rgba(46, 204, 113, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+  }
+}
+
+/* Responsiv design för batteristatus */
+@media (max-width: 1400px) {
+  .battery-indicator.home-battery {
+    left: -130px;
+    transform: scale(0.85);
+  }
+  
+  .battery-indicator.ev-battery {
+    right: -130px;
+    transform: scale(0.85);
+  }
+}
+
+@media (max-width: 1200px) {
+  .battery-indicator.home-battery {
+    left: -120px;
+    transform: scale(0.8);
+  }
+  
+  .battery-indicator.ev-battery {
+    right: -120px;
+    transform: scale(0.8);
+  }
+  
+  .battery-indicator {
+    width: 95px;
+    height: 240px;
+    padding: 12px 8px;
+  }
+  
+  .battery-shell {
+    width: 45px;
+    height: 90px;
+  }
+  
+  .battery-percentage {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 900px) {
+  .battery-indicator.home-battery {
+    left: -105px;
+    transform: scale(0.75);
+  }
+  
+  .battery-indicator.ev-battery {
+    right: -105px;
+    transform: scale(0.75);
+  }
+  
+  .battery-indicator {
+    width: 80px;
+    height: 200px;
+    padding: 10px 6px;
+  }
+  
+  .battery-shell {
+    width: 40px;
+    height: 75px;
+  }
+  
+  .battery-percentage {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .battery-indicators {
+    display: none; /* Dölj på mobil för att spara plats */
+  }
+}
+
+/* Zoom-specifika anpassningar */
+@media (min-resolution: 144dpi) {
+  .battery-indicator.home-battery {
+    transform: scale(0.7);
+  }
+  
+  .battery-indicator.ev-battery {
+    transform: scale(0.7);
+  }
+}
+
+@media (min-resolution: 192dpi) {
+  .battery-indicator.home-battery {
+    left: -110px;
+    transform: scale(0.6);
+  }
+  
+  .battery-indicator.ev-battery {
+    right: -110px;
+    transform: scale(0.6);
+  }
 } 

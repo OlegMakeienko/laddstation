@@ -6,17 +6,22 @@
   align-items: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   z-index: -1;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .scene-wrapper {
   position: relative;
-  margin-top: 50px;
-  width: 90%;
-  max-width: 900px;
-  height: 80vh;
-  background: white;
+  width: 100%;
+  max-width: 1000px;
+  height: 70vh;
+  min-height: 500px;
+  max-height: 700px;
+  background: transparent;
   border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  overflow: visible;
+  aspect-ratio: 16/10; /* Fastställ bildförhållande */
 }
 
 .background-image {
@@ -29,6 +34,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  border-radius: 15px;
   z-index: 1;
 }
 
@@ -114,22 +120,14 @@
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
   .scene-wrapper {
-    width: 95%;
-    height: 70vh;
-  }
-  
-  .status-text {
-    fontSize: 14px;
-  }
-  
-  .hint-text {
-    fontSize: 10px;
+    max-width: 900px;
+    height: 65vh;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .scene-container {
     padding: 10px;
   }
@@ -137,13 +135,52 @@
   .scene-wrapper {
     width: 100%;
     height: 60vh;
+    min-height: 400px;
+    max-height: 500px;
   }
   
   .status-text {
-    fontSize: 12px;
+    font-size: 14px;
   }
   
   .hint-text {
-    fontSize: 9px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .scene-container {
+    padding: 5px;
+  }
+  
+  .scene-wrapper {
+    width: 100%;
+    height: 50vh;
+    min-height: 350px;
+    max-height: 400px;
+  }
+  
+  .status-text {
+    font-size: 12px;
+  }
+  
+  .hint-text {
+    font-size: 9px;
+  }
+}
+
+/* Zoom-anpassningar */
+@media (min-width: 1400px) {
+  .scene-wrapper {
+    max-width: 1200px;
+    height: 75vh;
+  }
+}
+
+/* För mycket hög zoom (över 150%) */
+@media (max-resolution: 192dpi) and (max-width: 1000px) {
+  .scene-wrapper {
+    height: 50vh;
+    min-height: 300px;
   }
 } 
