@@ -52,6 +52,51 @@ const Scene = () => {
     setChargingStatus(!chargingStatus);
   };
 
+  // Funktioner för att ladda ur batterier
+  const dischargeEVBattery = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/discharge-ev-battery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ discharging: 'on' })
+      });
+      
+      if (response.ok) {
+        console.log('EV battery discharge initiated');
+        // Uppdatera data direkt efter kommando
+        setTimeout(() => {
+          fetchEvBatteryData();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Failed to discharge EV battery:', error);
+    }
+  };
+
+  const dischargeHomeBattery = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/discharge-home-battery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ discharging: 'on' })
+      });
+      
+      if (response.ok) {
+        console.log('Home battery discharge initiated');
+        // Uppdatera data direkt efter kommando
+        setTimeout(() => {
+          fetchHomeBatteryData();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Failed to discharge home battery:', error);
+    }
+  };
+
   // Hjälpfunktioner för batterifärger
   const getBatteryColor = (percentage) => {
     if (percentage >= 80) return '#27ae60'; // Grön
@@ -343,6 +388,9 @@ const Scene = () => {
               <div className="battery-percentage" style={{color: getBatteryColor(homeBatteryDisplayData.percentage)}}>{homeBatteryDisplayData.percentage}%</div>
               <div className="battery-capacity">{homeBatteryDisplayData.energyKwh.toFixed(1)}/{homeBatteryDisplayData.maxCapacityKwh} kWh</div>
               <div className="battery-status" style={getBatteryStatusStyle(homeBatteryDisplayData.percentage)}>{homeBatteryDisplayData.healthStatus}</div>
+              <button className="battery-discharge-btn" onClick={dischargeHomeBattery}>
+                ⚡ Ladda ur till 10%
+              </button>
             </div>
           </div>
 
@@ -364,6 +412,9 @@ const Scene = () => {
               <div className="battery-percentage" style={{color: getBatteryColor(evBatteryData.percentage)}}>{evBatteryData.percentage}%</div>
               <div className="battery-capacity">{evBatteryData.energyKwh.toFixed(1)}/{evBatteryData.maxCapacityKwh} kWh</div>
               <div className="battery-status" style={getBatteryStatusStyle(evBatteryData.percentage, evBatteryData.isCharging)}>{evBatteryData.isCharging ? '⚡ Laddar' : 'Redo'}</div>
+              <button className="battery-discharge-btn" onClick={dischargeEVBattery}>
+                ⚡ Ladda ur till 20%
+              </button>
             </div>
           </div>
         </div>
