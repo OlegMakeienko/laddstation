@@ -242,8 +242,8 @@ def charge_battery():
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
-@app.route('/discharge', methods=['POST', 'GET'])
-def discharge_battery():
+@app.route('/discharge-ev-battery', methods=['POST', 'GET'])
+def discharge_EVbattery():
     global ev_battery_charge_start_stopp
     global current_household_load_kwh # Använd det nya namnet
     global base_load_residential_kwh
@@ -290,7 +290,7 @@ def discharge_battery():
             return jsonify({'error': str(e)})
     elif request.method == 'GET':
         #return jsonify(ev_batt_capacity_percent)
-        return jsonify({'message': 'This is a GET request. Use POST to reset the battery.'})
+        return jsonify({'message': 'This is a GET request. Use POST to reset the EV battery.'})
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 

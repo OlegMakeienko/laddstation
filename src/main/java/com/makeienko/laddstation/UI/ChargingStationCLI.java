@@ -36,7 +36,7 @@ public class ChargingStationCLI {
             System.out.println("6. Starta laddning när när hushållets förbrukning är som lägst och total energiförbrukning" +
                     "skall understiga 11kW");
             System.out.println("7. Avsluta");
-            System.out.println("8. Ladda ur batteriet till 20%");
+            System.out.println("8. Ladda ur EV batteriet till 20%");
             System.out.println("9. Visa solpanelproduktion per timme");
             System.out.println("10. Ladda ur husbatteriet till 10%");
             System.out.print("Välj ett alternativ: ");
@@ -67,7 +67,7 @@ public class ChargingStationCLI {
                     System.exit(0);
                     break;
                 case 8:
-                    chargingService.dischargeBatteryTo20();
+                    chargingService.dischargeEVBatteryTo20();
                     break;
                 case 9:
                     chargingService.fetchAndDisplaySolarProductionPerHour();

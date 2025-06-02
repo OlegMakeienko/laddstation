@@ -186,14 +186,15 @@ public class BatteryManager {
     }
     
     /**
-     * Anropar API för att urladda batteriet till 20%.
+     * Urladdning av EV batteriet till 20% via API
      */
-    public void dischargeBatteryTo20Api() {
+    public void dischargeEVBatteryTo20Api() {
         try {
-            String response = apiClient.dischargeBattery();
-            System.out.println("BatteryManager: Called API to discharge battery to 20%. Response: " + response);
+            System.out.println("BatteryManager: Sending command to discharge EV battery to 20%...");
+            String response = apiClient.dischargeEVBattery();
+            System.out.println("BatteryManager: Server response: " + response);
         } catch (Exception e) {
-            System.err.println("BatteryManager: Error calling API to discharge battery: " + e.getMessage());
+            System.err.println("BatteryManager: Failed to discharge EV battery: " + e.getMessage());
         }
     }
 } 

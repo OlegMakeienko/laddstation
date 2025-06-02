@@ -141,18 +141,18 @@ public class LaddstationApiClient {
     }
     
     /**
-     * Urladdning av batteriet till 20%
+     * Urladdning av EV batteriet till 20%
      */
-    public String dischargeBattery() {
+    public String dischargeEVBattery() {
         try {
             String response = restTemplate.postForObject(
-                    BASE_URL + "/discharge",
+                    BASE_URL + "/discharge-ev-battery",
                     Map.of("discharging", "on"),
                     String.class
             );
             return response;
         } catch (Exception e) {
-            throw new ChargingServiceException("Failed to discharge battery: " + e.getMessage(), e);
+            throw new ChargingServiceException("Failed to discharge EV battery: " + e.getMessage(), e);
         }
     }
 

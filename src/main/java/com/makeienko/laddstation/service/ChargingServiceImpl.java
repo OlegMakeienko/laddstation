@@ -337,19 +337,19 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
-    public void dischargeBatteryTo20() {
-        System.out.println("ChargingServiceImpl: Initiating discharge to 20%.");
-        batteryManager.dischargeBatteryTo20Api();
+    public void dischargeEVBatteryTo20() {
+        System.out.println("ChargingServiceImpl: Initiating EV battery discharge to 20%.");
+        batteryManager.dischargeEVBatteryTo20Api();
         // We might want to poll here until 20% is confirmed, or trust the server handles it.
         // For now, just calling the API and printing a message.
-        System.out.println("ChargingServiceImpl: Discharge command sent to server.");
+        System.out.println("ChargingServiceImpl: EV battery discharge command sent to server.");
         // Optionally, display battery status after a short delay
         try {
             Thread.sleep(2000); // Wait 2 seconds for server to process
             displayInfoResponse();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after discharge command.");
+            System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after EV battery discharge command.");
         }
     }
 
