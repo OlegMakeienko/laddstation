@@ -1,6 +1,31 @@
-# Electric Vehicle (EV) Charging Station Optimization
+# Electric Vehicle (V2H) Charging Optimization
 
-This project is a Java-based system for optimizing the charging of electric vehicles (EVs). The system ensures that the battery is charged during optimal hours based on electricity prices and household power consumption while adhering to the constraints of total power load capacity.
+Systemarkitektur: Off-Grid Stuga
+Energikällor:
+☀️ Solpaneler (10 kW)
+🔋 Husbatteri (13.5 kWh)
+🚗 Elbilens batteri (46.3 kWh) - som backup
+Energiflöden att simulera:
+Sol → Hus (direkt förbrukning)
+Sol → Husbatteri (lagring)
+Sol → Elbil (laddning när överskott)
+Husbatteri → Hus (när sol inte räcker)
+Elbil → Hus (V2H när nödsituation)
+Hus ← Elbil (normal laddning från husbatteri/sol)
+🤔 Logik att Fundera På
+Prioriteringsordning:
+Först: Solel direkt till huset
+Sen: Överskott till husbatteri (om < 90%)
+Sen: Överskott till elbil (om husbatteri fullt)
+Nöd: Elbil → Hus (om husbatteri < 20% OCH elbil > 40%)
+Säkerhetsgränser:
+🏠 Husbatteri: Min 10%, Max 100%
+🚗 Elbil: Min 40% (för körning), Max 100%
+⚠️ Kritisk situation: Husbatteri < 15% → Använd elbil
+Optimeringsstrategier:
+Sommar: Sol → Hus → Husbatteri → Elbil
+Vinter: Spara elbilens energi, ladda bara vid solöverskott
+Molnigt: Prioritera husbatteri, undvik elbilladdning
 
 ---
 

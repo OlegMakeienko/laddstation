@@ -20,7 +20,37 @@ energy_price=[85.28,70.86,68.01,67.95,68.01,85.04,87.86,100.26,118.45,116.61,105
 
 #Residential building
 max_power_residential_building=11  # (11 kW = 16A 3 phase)
-base_load_residential_percent=[0.08,0.07,0.20,0.18,0.25,0.35,0.41,0.34,0.35,0.40,0.43,0.56,0.42,0.34,0.32,0.33,0.53,1.00,0.81,0.55,0.39,0.24,0.17,0.09]
+
+# Ny realistisk profil för stuga med angivna apparater
+# Profilen tar hänsyn till: elvattenkokare, diskmaskin (2 ggr/vecka), tvättmaskin (1 gång/vecka),
+# kaffebryggare, elspis, luft/luft värmepump, vattenberedare 100L
+# Totalt: ~65 kWh/dag i genomsnitt
+base_load_residential_percent=[
+    0.18,  # 00:00 - Värmepump + vattenberedare nattuppvärmning
+    0.16,  # 01:00 - Värmepump + standby
+    0.15,  # 02:00 - Värmepump + standby  
+    0.15,  # 03:00 - Värmepump + standby
+    0.16,  # 04:00 - Värmepump + vattenberedare
+    0.20,  # 05:00 - Värmepump + vattenberedare + morgonaktivitet
+    0.35,  # 06:00 - Kaffe + värmepump + vattenberedare + belysning
+    0.45,  # 07:00 - Frukost (spis/micro) + kaffe + värmepump + dusch
+    0.40,  # 08:00 - Värmepump + vattenberedare + grundlast
+    0.25,  # 09:00 - Värmepump + grundlast + elvattenkokare
+    0.30,  # 10:00 - Värmepump + disk/tvätt (vissa dagar) + grundlast
+    0.35,  # 11:00 - Värmepump + matlagning + grundlast
+    0.50,  # 12:00 - Lunch (spis) + värmepump + vattenberedare
+    0.30,  # 13:00 - Värmepump + grundlast
+    0.25,  # 14:00 - Värmepump + grundlast
+    0.30,  # 15:00 - Värmepump + fika (kaffe + elvattenkokare)
+    0.35,  # 16:00 - Värmepump + vattenberedare + förberedd middag
+    0.60,  # 17:00 - Middag (spis på full effekt) + värmepump + belysning
+    0.70,  # 18:00 - Middag + disk + värmepump + vattenberedare + belysning
+    0.45,  # 19:00 - Kvällsaktivitet + värmepump + belysning
+    0.35,  # 20:00 - Värmepump + belysning + TV/elektronik
+    0.30,  # 21:00 - Värmepump + belysning + grundlast
+    0.25,  # 22:00 - Värmepump + vattenberedare + reducerad belysning
+    0.20   # 23:00 - Värmepump + nattläge
+]
 base_load_residential_kwh=[value * max_power_residential_building for value in base_load_residential_percent]
 base_load_residential_kwh = [round(x, 2) for x in base_load_residential_kwh]
 #base_load_residential_kWh=[1.6,1.494,1.332,1.275,1.372,1.408,1.588,2.18,2.142,2.73,1.439,1.416,1.14,1.18,1.651,1.968,2.08,1.87,2.77,3.157,2.365,2.854,2.911,1.942]

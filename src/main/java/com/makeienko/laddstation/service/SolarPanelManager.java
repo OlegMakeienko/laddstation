@@ -93,7 +93,9 @@ public class SolarPanelManager {
     private double calculateEnergySurplus(InfoResponse info) {
         // Överskott = solproduktion - hushållsförbrukning
         double surplus = info.getSolarProductionKwh() - info.getHouseholdLoadKwh();
-        return Math.max(0, surplus); // Returnera bara positiva värden
+        double result = Math.max(0, surplus); // Returnera bara positiva värden
+        // Avrunda till 2 decimaler
+        return Math.round(result * 100.0) / 100.0;
     }
 
     /**
