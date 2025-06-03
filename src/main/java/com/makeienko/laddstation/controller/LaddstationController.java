@@ -146,7 +146,7 @@ public class LaddstationController {
     @GetMapping("/home-battery")
     public ResponseEntity<HomeBatteryResponse> getHomeBatteryStatus() {
         try {
-            HomeBatteryStatus status = homeBatteryManager.getHomeBatteryStatus();
+            HomeBatteryResponse status = homeBatteryManager.getHomeBatteryStatus();
             InfoResponse info = apiClient.getInfo();
             
             // Beräkna total tillgänglig energi och varningar

@@ -100,7 +100,7 @@ public class ChargingServiceImpl implements ChargingService {
 
             // Hämta detaljerad status med säkerhetsinformation
             try {
-                com.makeienko.laddstation.dto.HomeBatteryStatus status = homeBatteryManager.getHomeBatteryStatus();
+                com.makeienko.laddstation.dto.HomeBatteryResponse status = homeBatteryManager.getHomeBatteryStatus();
                 System.out.println("Hälsostatus: " + status.getHealthStatus());
                 System.out.println("Reservkraft: " + String.format("%.1f", status.getReserveHours()) + " timmar");
 

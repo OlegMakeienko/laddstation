@@ -1,7 +1,7 @@
 package com.makeienko.laddstation.service;
 
 import com.makeienko.laddstation.dto.InfoResponse;
-import com.makeienko.laddstation.dto.HomeBatteryStatus;
+import com.makeienko.laddstation.dto.HomeBatteryResponse;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,7 +16,6 @@ public class HomeBatteryManager {
     private static final double LOW_BATTERY_WARNING_PERCENT = 20.0;
     private static final double CRITICAL_BATTERY_PERCENT = 15.0;
     private static final double OPTIMAL_CHARGE_PERCENT = 80.0;
-    private static final double MAX_SAFE_DISCHARGE_RATE = 5.0; // kW
 
     public HomeBatteryManager(LaddstationApiClient apiClient) {
         this.apiClient = apiClient;
@@ -25,21 +24,23 @@ public class HomeBatteryManager {
     /**
      * Hämtar aktuell husbatteristatus från Python servern
      */
-    public HomeBatteryStatus getHomeBatteryStatus() {
+    public HomeBatteryResponse getHomeBatteryStatus() {
         InfoResponse info = apiClient.getInfo();
         if (info == null) {
             throw new RuntimeException("Failed to fetch battery info from server");
         }
 
-        return new HomeBatteryStatus(
+        return new HomeBatteryResponse(
+            info.getHomeBattCapacityPercent(),
             info.getHomeBattCapacityKwh(),
             info.getHomeBattMaxCapacityKwh(),
             info.getHomeBattMinCapacityKwh(),
-            info.getHomeBattCapacityPercent(),
             info.getHomeBatteryMode(),
             determineHealthStatus(info),
             calculateReserveHours(info),
-            isLowBatteryWarning(info.getHomeBattCapacityPercent()),
+            0.0, // totalAvailableEnergy - set to 0 for now
+            new String[0], // warnings - empty array for now
+    isLowBatteryWarning(info.getHomeBattCapacityPercent()),
             isCriticalBattery(info.getHomeBattCapacityPercent())
         );
     }
