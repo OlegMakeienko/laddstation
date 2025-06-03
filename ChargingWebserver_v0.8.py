@@ -18,8 +18,19 @@ from flask_cors import CORS
 #Energy_price in Öre per kWh incl VAT
 energy_price=[85.28,70.86,68.01,67.95,68.01,85.04,87.86,100.26,118.45,116.61,105.93,91.95,90.51,90.34,90.80,88.85,90.39,99.03,87.11,82.9,80.45,76.48,32.00,34.29]
 
+# SYSTEM CONSTANTS
+MAX_POWER_RESIDENTIAL = 11  # kW (16A 3 phase)
+CHARGING_POWER = 7.4  # kW EV charger power
+EV_BATT_NOMINAL_CAPACITY = 50  # kWh (Citroen e-Berlingo M nominal)
+EV_BATT_MAX_CAPACITY = 46.3  # kWh (Citroen e-Berlingo M)
+EV_BATT_DEFAULT_PERCENT = 20  # % (default start level)
+HOME_BATT_MAX_CAPACITY = 13.5  # kWh (Tesla Powerwall-like)
+HOME_BATT_MIN_PERCENT = 10  # % (minimum safe level)
+HOME_BATT_DEFAULT_PERCENT = 40  # % (default charge level for solar integration)
+SOLAR_PANEL_MAX_CAPACITY = 10.0  # kW (kraftig villa-anläggning)
+
 #Residential building
-max_power_residential_building=11  # (11 kW = 16A 3 phase)
+max_power_residential_building = MAX_POWER_RESIDENTIAL
 
 # Ny realistisk profil för stuga med angivna apparater
 # Profilen tar hänsyn till: elvattenkokare, diskmaskin (2 ggr/vecka), tvättmaskin (1 gång/vecka),
@@ -57,24 +68,24 @@ base_load_residential_kwh = [round(x, 2) for x in base_load_residential_kwh]
 current_household_load_kwh = base_load_residential_kwh[0] # Byt namn för tydlighet
 
 #Battery (Citroen e_Berlingo M)
-ev_batt_nominal_capacity=50 # kWh
-ev_batt_max_capacity=46.3   # kWh
-ev_batt_capacity_percent=20 #
+ev_batt_nominal_capacity = EV_BATT_NOMINAL_CAPACITY
+ev_batt_max_capacity = EV_BATT_MAX_CAPACITY
+ev_batt_capacity_percent = EV_BATT_DEFAULT_PERCENT
 ev_batt_capacity_kWh=ev_batt_capacity_percent/100*ev_batt_max_capacity
 ev_batt_energy_consumption=226 #kWh per km = 2260 per swedish mil
 #ev_battery_charge_start_stopp=False
 ev_battery_charge_start_stopp=False
 
 #Home Battery (Tesla Powerwall-like system)
-home_batt_max_capacity=13.5 # kWh (typical home battery size)
-home_batt_min_capacity_percent=10 # % (minimum to prevent damage)
-home_batt_capacity_percent=85 # % (start with good charge)
+home_batt_max_capacity = HOME_BATT_MAX_CAPACITY
+home_batt_min_capacity_percent = HOME_BATT_MIN_PERCENT
+home_batt_capacity_percent=HOME_BATT_DEFAULT_PERCENT # % (start with medium charge for solar integration)
 home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
 home_batt_min_capacity_kWh=home_batt_min_capacity_percent/100*home_batt_max_capacity
 home_battery_charge_discharge_mode="idle" # "charging", "discharging", "idle"
 
 #Solar Panel System (Kraftig villa-anläggning)
-solar_panel_max_capacity=10.0 # kW (kraftig anläggning för att täcka hela huset)
+solar_panel_max_capacity = SOLAR_PANEL_MAX_CAPACITY
 # Solproduktion per timme (0-23h) - realistisk kurva för svensk sommardag
 solar_production_profile_percent=[0.0,0.0,0.0,0.0,0.0,0.05,0.15,0.35,0.55,0.75,0.90,0.95,1.0,0.95,0.90,0.75,0.55,0.35,0.15,0.05,0.0,0.0,0.0,0.0]
 solar_production_kwh=[value * solar_panel_max_capacity for value in solar_production_profile_percent]
@@ -83,7 +94,7 @@ current_solar_production_kwh = solar_production_kwh[0] # Aktuell solproduktion
 
 #Charging station
 charging_station_info= {"Power":"7.4"} #EV version 2 charger
-charging_power=7.4 # kW pchmax from car manufacturer
+charging_power = CHARGING_POWER
 
 #time
 sim_hour=0
@@ -273,12 +284,12 @@ def discharge_EVbattery():
                     ev_battery_charge_start_stopp=False
                     current_household_load_kwh = base_load_residential_kwh[0] # Återställ hushållets last
                     #Battery (Citroen e_Berlingo M)
-                    ev_batt_nominal_capacity=50 # kWh
-                    ev_batt_max_capacity=46.3   # kWh
-                    ev_batt_capacity_percent=20 #
+                    ev_batt_nominal_capacity = EV_BATT_NOMINAL_CAPACITY
+                    ev_batt_max_capacity = EV_BATT_MAX_CAPACITY
+                    ev_batt_capacity_percent = EV_BATT_DEFAULT_PERCENT
                     ev_batt_capacity_kWh=ev_batt_capacity_percent/100*ev_batt_max_capacity
                     #Home Battery reset
-                    home_batt_capacity_percent=85 # % (reset to good charge)
+                    home_batt_capacity_percent=HOME_BATT_DEFAULT_PERCENT # % (reset to medium charge for solar integration)
                     home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
                     home_battery_charge_discharge_mode="idle"
                     sim_hour=0
