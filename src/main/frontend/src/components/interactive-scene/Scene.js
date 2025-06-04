@@ -159,7 +159,8 @@ const Scene = () => {
         batteryLevel: batteryInfo.batteryLevel,
         healthStatus: batteryInfo.healthStatus,
         reserveHours: batteryInfo.reserveHours,
-        v2hSafe: batteryInfo.v2hSafe
+        v2hSafe: batteryInfo.v2hSafe,
+        isCharging: batteryInfo.batteryLevel < 95 && batteryInfo.solarProduction > 0
       });
 
       // Uppdatera också display-data för visual indikator
@@ -167,7 +168,12 @@ const Scene = () => {
         percentage: batteryInfo.batteryLevel || 85,
         energyKwh: batteryInfo.capacityKwh || 11.5,
         maxCapacityKwh: batteryInfo.maxCapacityKwh || 13.5,
-        healthStatus: batteryInfo.healthStatus || 'Optimal'
+        healthStatus: batteryInfo.healthStatus || 'Optimal',
+        chargingStatus: batteryInfo.batteryLevel < 95 && batteryInfo.solarProduction > 0 
+          ? 'Laddar med solenergi' 
+          : batteryInfo.batteryLevel >= 95 
+            ? 'Fulladdat' 
+            : 'Väntar på solenergi'
       });
     } catch (error) {
       console.error('Failed to fetch home battery data:', error);

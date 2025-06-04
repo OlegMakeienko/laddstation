@@ -4,19 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response för husbatteristatus
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class HomeBatteryResponse {
-    private double capacityPercent;
-    private double currentCapacityKwh;
+    private double batteryLevel;
+    private double capacityKwh;
     private double maxCapacityKwh;
     private double minCapacityKwh;
-    private String mode;
-    private String healthStatus;
-    private double reserveHours;
-    private double totalAvailableEnergy;
-    private String[] warnings;
-    private boolean lowBatteryWarning;
-    private boolean criticalBattery;
+    private String batteryMode;
 } 

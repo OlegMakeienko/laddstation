@@ -20,5 +20,4 @@ public interface ChargingService {
     void performChargingSessionWithStrategy(OptimalHoursStrategy strategy);
     void dischargeEVBatteryTo20();
     void dischargeHomeBatteryTo10();
-    void manageSolarBatteryIntegration();
 }
