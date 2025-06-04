@@ -38,9 +38,9 @@ public class HomeBatteryManager {
             info.getHomeBatteryMode(),
             determineHealthStatus(info),
             calculateReserveHours(info),
-            0.0, // totalAvailableEnergy - set to 0 for now
-            new String[0], // warnings - empty array for now
-    isLowBatteryWarning(info.getHomeBattCapacityPercent()),
+            calculateTotalAvailableEnergy(info),
+            generateSafetyWarnings(info),
+            isLowBatteryWarning(info.getHomeBattCapacityPercent()),
             isCriticalBattery(info.getHomeBattCapacityPercent())
         );
     }
@@ -146,6 +146,63 @@ public class HomeBatteryManager {
             System.out.println("HomeBatteryManager: Server response: " + response);
         } catch (Exception e) {
             System.err.println("HomeBatteryManager: Failed to discharge home battery: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Ladda husbatteriet från solpaneler
+     * @return current battery capacity in kWh after charging attempt
+     */
+    public double chargeHomeBattery() {
+        try {
+            InfoResponse info = apiClient.getInfo();
+            if (info == null) {
+                System.err.println("HomeBatteryManager: Failed to fetch info for home battery charging");
+                return 0.0;
+            }
+            
+            double homeBatteryPercent = info.getHomeBattCapacityPercent();
+            double solarProduction = info.getSolarProductionKwh();
+            double homeBatteryCapacity = info.getHomeBattCapacityKwh();
+            double homeBattMaxCapacityKwh = info.getHomeBattMaxCapacityKwh();
+            double currentCapacity = homeBatteryCapacity;
+            
+            // Kontrollera om vi har solproduktion och batteriet inte är fullt
+            if (solarProduction > 0 && homeBatteryPercent < 95.0) {
+                System.out.println("HomeBatteryManager: Starting solar charging of home battery");
+                
+                // Beräkna hur mycket vi kan ladda
+                double availableSpace = homeBattMaxCapacityKwh - homeBatteryCapacity;
+                double chargeAmount = Math.min(solarProduction, availableSpace);
+                
+                // Uppdatera kapaciteten
+                currentCapacity = homeBatteryCapacity + chargeAmount;
+                
+                // Uppdatera procenten
+                homeBatteryPercent = (currentCapacity / homeBattMaxCapacityKwh) * 100;
+                
+                System.out.printf("HomeBatteryManager: Charged %.2f kWh, new capacity: %.2f kWh (%.1f%%)\n", 
+                    chargeAmount, currentCapacity, homeBatteryPercent);
+            }
+
+            return currentCapacity;
+            
+        } catch (Exception e) {
+            System.err.println("HomeBatteryManager: Failed to charge home battery: " + e.getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Stoppa laddning av husbatteriet
+     */
+    public void stopCharging() {
+        try {
+            System.out.println("HomeBatteryManager: Stopping home battery charging");
+            String response = apiClient.stopHomeBatteryCharging();
+            System.out.println("HomeBatteryManager: " + response);
+        } catch (Exception e) {
+            System.err.println("HomeBatteryManager: Failed to stop charging: " + e.getMessage());
         }
     }
 } 
