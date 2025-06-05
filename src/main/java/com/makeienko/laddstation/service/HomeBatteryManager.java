@@ -82,4 +82,15 @@ public class HomeBatteryManager {
             return 0.0;
         }
     }
+
+    /**
+     * Ladda ur husbatteriet till 10%
+     */
+    public void dischargeBattery() {
+        try {
+            apiClient.dischargeHomeBatteryTo10();
+        } catch (Exception e) {
+            System.err.println("HomeBatteryManager: Failed to discharge battery: " + e.getMessage());
+        }
+    }
 } 

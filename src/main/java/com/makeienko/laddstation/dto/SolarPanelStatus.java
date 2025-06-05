@@ -13,8 +13,6 @@ public class SolarPanelStatus {
     private double productionPercent;
     private double netHouseholdLoadKwh;
     private String productionStatus; // "Ingen produktion", "Låg produktion", "Normal produktion", "Hög produktion", "Max produktion"
-    private double dailyProductionEstimate;
     private double energySurplus; // Överskott som kan användas för laddning
-    private boolean isSurplusAvailable;
-    private String[] optimizationTips; // Lägg till optimeringstips direkt i denna klass
+    private boolean surplusAvailable;
 } 

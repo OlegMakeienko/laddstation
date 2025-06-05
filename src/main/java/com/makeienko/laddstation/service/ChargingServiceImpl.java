@@ -1,6 +1,7 @@
 package com.makeienko.laddstation.service;
 
 import com.makeienko.laddstation.dto.InfoResponse;
+import com.makeienko.laddstation.dto.SolarPanelStatus;
 import com.makeienko.laddstation.exception.ChargingServiceException;
 import com.makeienko.laddstation.service.strategy.OptimalHoursStrategy;
 import com.makeienko.laddstation.service.strategy.PriceBasedStrategy;
@@ -40,46 +41,33 @@ public class ChargingServiceImpl implements ChargingService {
         // Kontrollera att data hämtades korrekt
         if (infoResponse != null) {
             // Skriv ut objektets data i ett strukturerat format
-            System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
-            System.out.println("Household Load: " + infoResponse.getHouseholdLoadKwh() + " kW");
-            
-            // EV Battery information
-            System.out.println("EV Battery Energy: " + infoResponse.getBatteryEnergyKwh() + " kWh");
-            System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
-            System.out.println("EV Battery Max Capacity: " + infoResponse.getEvBattMaxCapacityKwh() + " kWh");
-            
-            // Home Battery information
-            System.out.println("Home Battery Energy: " + infoResponse.getHomeBattCapacityKwh() + " kWh");
-            System.out.println("Home Battery Capacity: " + infoResponse.getHomeBattCapacityPercent() + "%");
-            System.out.println("Home Battery Max Capacity: " + infoResponse.getHomeBattMaxCapacityKwh() + " kWh");
-            System.out.println("Home Battery Min Capacity: " + infoResponse.getHomeBattMinCapacityKwh() + " kWh");
-            System.out.println("Home Battery Mode: " + infoResponse.getHomeBatteryMode());
-            
-            // Solar Panel information
-            try {
-                com.makeienko.laddstation.dto.SolarPanelStatus solarStatus = solarPanelManager.getSolarPanelStatus();
-                System.out.println("\n=== SOLPANEL STATUS ===");
-                System.out.println("Solar Production: " + solarStatus.getCurrentProductionKwh() + " kWh");
-                System.out.println("Solar Max Capacity: " + solarStatus.getMaxCapacityKwh() + " kWh");
-                System.out.println("Solar Production Percent: " + solarStatus.getProductionPercent() + "%");
-                System.out.println("Solar Production Status: " + solarStatus.getProductionStatus());
-                System.out.println("Energy Surplus: " + solarStatus.getEnergySurplus() + " kWh");
-                System.out.println("Daily Production Estimate: " + String.format("%.2f", solarStatus.getDailyProductionEstimate()) + " kWh");
-                System.out.println("Net Household Load: " + solarStatus.getNetHouseholdLoadKwh() + " kWh");
-                
-                if (solarStatus.getOptimizationTips().length > 0) {
-                    System.out.println("\n💡 OPTIMERINGSTIPS:");
-                    for (String tip : solarStatus.getOptimizationTips()) {
-                        System.out.println("  " + tip);
-                    }
-                }
-                System.out.println("========================");
-            } catch (Exception e) {
-                System.err.println("Error getting solar panel status: " + e.getMessage());
-            }
+            displayInfoResponse(infoResponse);
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
         }
+    }
+
+    private void displayInfoResponse(InfoResponse info) {
+        System.out.println("Simulated Time: " + info.getSimTimeHour() + " hours, " + info.getSimTimeMin() + " minutes");
+        System.out.println("Household Load: " + info.getHouseholdLoadKwh() + " kW");
+        System.out.println("EV Battery Energy: " + info.getBatteryEnergyKwh() + " kWh");
+        System.out.println("EV Battery Charge Start/Stop: " + (info.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
+        System.out.println("EV Battery Max Capacity: " + info.getEvBattMaxCapacityKwh() + " kWh");
+        System.out.println("Home Battery Energy: " + info.getHomeBattCapacityKwh() + " kWh");
+        System.out.println("Home Battery Capacity: " + info.getHomeBattCapacityPercent() + "%");
+        System.out.println("Home Battery Max Capacity: " + info.getHomeBattMaxCapacityKwh() + " kWh");
+        System.out.println("Home Battery Min Capacity: " + info.getHomeBattMinCapacityKwh() + " kWh");
+        System.out.println("Home Battery Mode: " + info.getHomeBatteryMode());
+
+        System.out.println("\n=== SOLPANEL STATUS ===");
+        SolarPanelStatus solarStatus = solarPanelManager.getSolarPanelStatus();
+        System.out.println("Solar Production: " + solarStatus.getCurrentProductionKwh() + " kWh");
+        System.out.println("Solar Max Capacity: " + solarStatus.getMaxCapacityKwh() + " kWh");
+        System.out.println("Solar Production Percent: " + solarStatus.getProductionPercent() + "%");
+        System.out.println("Solar Production Status: " + solarStatus.getProductionStatus());
+        System.out.println("Energy Surplus: " + solarStatus.getEnergySurplus() + " kWh");
+        System.out.println("Net Household Load: " + solarStatus.getNetHouseholdLoadKwh() + " kWh");
+        System.out.println("========================");
     }
 
     @Override
@@ -98,34 +86,11 @@ public class ChargingServiceImpl implements ChargingService {
             System.out.println("Min säker nivå: " + info.getHomeBattMinCapacityKwh() + " kWh");
             System.out.println("Läge: " + info.getHomeBatteryMode());
 
-            // Hämta detaljerad status med säkerhetsinformation
-            try {
+            // Hämta uppdaterad status från HomeBatteryManager
                 com.makeienko.laddstation.dto.HomeBatteryResponse status = homeBatteryManager.getHomeBatteryStatus();
-                System.out.println("Hälsostatus: " + status.getHealthStatus());
-                System.out.println("Reservkraft: " + String.format("%.1f", status.getReserveHours()) + " timmar");
-
-                // Visa total tillgänglig energi
-                double totalEnergy = homeBatteryManager.calculateTotalAvailableEnergy(info);
-                System.out.println("Total tillgänglig energi (EV + Hus): " + String.format("%.2f", totalEnergy) + " kWh");
-
-                // Visa säkerhetsvarningar
-                String[] warnings = homeBatteryManager.generateSafetyWarnings(info);
-                if (warnings.length > 0) {
-                    System.out.println("\n⚠️ SÄKERHETSVARNINGAR:");
-                    for (String warning : warnings) {
-                        System.out.println("  " + warning);
-                    }
-                } else {
-                    System.out.println("✅ Inga varningar - systemet är säkert");
-                }
-
-                // V2H säkerhetsstatus
-                double evPercent = (info.getBatteryEnergyKwh() / info.getEvBattMaxCapacityKwh()) * 100;
-                boolean v2hSafe = homeBatteryManager.isSafeForV2H(evPercent, info.getHomeBattCapacityPercent());
-                System.out.println("V2H (Vehicle-to-Home) säkerhet: " + (v2hSafe ? "✅ Säkert" : "⚠️ Inte säkert"));
-
-            } catch (Exception e) {
-                System.err.println("Error getting detailed home battery status: " + e.getMessage());
+            if (status != null) {
+                System.out.println("Uppdaterad kapacitet: " + status.getCapacityKwh() + " kWh");
+                System.out.println("Uppdaterad nivå: " + status.getBatteryLevel() + "%");
             }
 
             System.out.println("========================\n");
@@ -356,7 +321,7 @@ public class ChargingServiceImpl implements ChargingService {
     @Override
     public void dischargeHomeBatteryTo10() {
         System.out.println("ChargingServiceImpl: Initiating home battery discharge to 10%.");
-        homeBatteryManager.dischargeHomeBatteryTo10Api();
+        homeBatteryManager.dischargeBattery();
         System.out.println("ChargingServiceImpl: Home battery discharge command sent to server.");
         // Display battery status after a short delay
         try {

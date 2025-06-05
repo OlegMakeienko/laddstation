@@ -147,27 +147,7 @@ public class LaddstationController {
     public ResponseEntity<HomeBatteryResponse> getHomeBatteryStatus() {
         try {
             HomeBatteryResponse status = homeBatteryManager.getHomeBatteryStatus();
-            InfoResponse info = apiClient.getInfo();
-            
-            // Beräkna total tillgänglig energi och varningar
-            double totalAvailableEnergy = homeBatteryManager.calculateTotalAvailableEnergy(info);
-            String[] warnings = homeBatteryManager.generateSafetyWarnings(info);
-            
-            HomeBatteryResponse response = new HomeBatteryResponse(
-                status.getCapacityPercent(),
-                status.getCurrentCapacityKwh(),
-                status.getMaxCapacityKwh(),
-                status.getMinCapacityKwh(),
-                status.getMode(),
-                status.getHealthStatus(),
-                Math.round(status.getReserveHours() * 10.0) / 10.0, // Avrunda till 1 decimal
-                totalAvailableEnergy,
-                warnings,
-                status.isLowBatteryWarning(),
-                status.isCriticalBattery()
-            );
-            
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(status);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
