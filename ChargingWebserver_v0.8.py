@@ -18,34 +18,83 @@ from flask_cors import CORS
 #Energy_price in Öre per kWh incl VAT
 energy_price=[85.28,70.86,68.01,67.95,68.01,85.04,87.86,100.26,118.45,116.61,105.93,91.95,90.51,90.34,90.80,88.85,90.39,99.03,87.11,82.9,80.45,76.48,32.00,34.29]
 
+# SYSTEM CONSTANTS
+MAX_POWER_RESIDENTIAL = 11  # kW (16A 3 phase)
+CHARGING_POWER = 7.4  # kW EV charger power
+EV_BATT_NOMINAL_CAPACITY = 50  # kWh (Citroen e-Berlingo M nominal)
+EV_BATT_MAX_CAPACITY = 46.3  # kWh (Citroen e-Berlingo M)
+EV_BATT_DEFAULT_PERCENT = 20  # % (default start level)
+HOME_BATT_MAX_CAPACITY = 13.5  # kWh (Tesla Powerwall-like)
+HOME_BATT_MIN_PERCENT = 10  # % (minimum safe level)
+HOME_BATT_DEFAULT_PERCENT = 40  # % (default charge level for solar integration)
+SOLAR_PANEL_MAX_CAPACITY = 10.0  # kW (kraftig villa-anläggning)
+
 #Residential building
-max_power_residential_building=11  # (11 kW = 16A 3 phase)
-base_load_residential_percent=[0.08,0.07,0.20,0.18,0.25,0.35,0.41,0.34,0.35,0.40,0.43,0.56,0.42,0.34,0.32,0.33,0.53,1.00,0.81,0.55,0.39,0.24,0.17,0.09]
+max_power_residential_building = MAX_POWER_RESIDENTIAL
+
+# Ny realistisk profil för stuga med angivna apparater
+# Profilen tar hänsyn till: elvattenkokare, diskmaskin (2 ggr/vecka), tvättmaskin (1 gång/vecka),
+# kaffebryggare, elspis, luft/luft värmepump, vattenberedare 100L
+# Totalt: ~65 kWh/dag i genomsnitt
+base_load_residential_percent=[
+    0.18,  # 00:00 - Värmepump + vattenberedare nattuppvärmning
+    0.16,  # 01:00 - Värmepump + standby
+    0.15,  # 02:00 - Värmepump + standby  
+    0.15,  # 03:00 - Värmepump + standby
+    0.16,  # 04:00 - Värmepump + vattenberedare
+    0.20,  # 05:00 - Värmepump + vattenberedare + morgonaktivitet
+    0.35,  # 06:00 - Kaffe + värmepump + vattenberedare + belysning
+    0.45,  # 07:00 - Frukost (spis/micro) + kaffe + värmepump + dusch
+    0.40,  # 08:00 - Värmepump + vattenberedare + grundlast
+    0.25,  # 09:00 - Värmepump + grundlast + elvattenkokare
+    0.30,  # 10:00 - Värmepump + disk/tvätt (vissa dagar) + grundlast
+    0.35,  # 11:00 - Värmepump + matlagning + grundlast
+    0.50,  # 12:00 - Lunch (spis) + värmepump + vattenberedare
+    0.30,  # 13:00 - Värmepump + grundlast
+    0.25,  # 14:00 - Värmepump + grundlast
+    0.30,  # 15:00 - Värmepump + fika (kaffe + elvattenkokare)
+    0.35,  # 16:00 - Värmepump + vattenberedare + förberedd middag
+    0.60,  # 17:00 - Middag (spis på full effekt) + värmepump + belysning
+    0.70,  # 18:00 - Middag + disk + värmepump + vattenberedare + belysning
+    0.45,  # 19:00 - Kvällsaktivitet + värmepump + belysning
+    0.35,  # 20:00 - Värmepump + belysning + TV/elektronik
+    0.30,  # 21:00 - Värmepump + belysning + grundlast
+    0.25,  # 22:00 - Värmepump + vattenberedare + reducerad belysning
+    0.20   # 23:00 - Värmepump + nattläge
+]
 base_load_residential_kwh=[value * max_power_residential_building for value in base_load_residential_percent]
 base_load_residential_kwh = [round(x, 2) for x in base_load_residential_kwh]
 #base_load_residential_kWh=[1.6,1.494,1.332,1.275,1.372,1.408,1.588,2.18,2.142,2.73,1.439,1.416,1.14,1.18,1.651,1.968,2.08,1.87,2.77,3.157,2.365,2.854,2.911,1.942]
 current_household_load_kwh = base_load_residential_kwh[0] # Byt namn för tydlighet
 
 #Battery (Citroen e_Berlingo M)
-ev_batt_nominal_capacity=50 # kWh
-ev_batt_max_capacity=46.3   # kWh
-ev_batt_capacity_percent=20 #
+ev_batt_nominal_capacity = EV_BATT_NOMINAL_CAPACITY
+ev_batt_max_capacity = EV_BATT_MAX_CAPACITY
+ev_batt_capacity_percent = EV_BATT_DEFAULT_PERCENT
 ev_batt_capacity_kWh=ev_batt_capacity_percent/100*ev_batt_max_capacity
 ev_batt_energy_consumption=226 #kWh per km = 2260 per swedish mil
 #ev_battery_charge_start_stopp=False
 ev_battery_charge_start_stopp=False
 
 #Home Battery (Tesla Powerwall-like system)
-home_batt_max_capacity=13.5 # kWh (typical home battery size)
-home_batt_min_capacity_percent=10 # % (minimum to prevent damage)
-home_batt_capacity_percent=85 # % (start with good charge)
+home_batt_max_capacity = HOME_BATT_MAX_CAPACITY
+home_batt_min_capacity_percent = HOME_BATT_MIN_PERCENT
+home_batt_capacity_percent=HOME_BATT_DEFAULT_PERCENT # % (start with medium charge for solar integration)
 home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
 home_batt_min_capacity_kWh=home_batt_min_capacity_percent/100*home_batt_max_capacity
 home_battery_charge_discharge_mode="idle" # "charging", "discharging", "idle"
 
+#Solar Panel System (Kraftig villa-anläggning)
+solar_panel_max_capacity = SOLAR_PANEL_MAX_CAPACITY
+# Solproduktion per timme (0-23h) - realistisk kurva för svensk sommardag
+solar_production_profile_percent=[0.0,0.0,0.0,0.0,0.0,0.05,0.15,0.35,0.55,0.75,0.90,0.95,1.0,0.95,0.90,0.75,0.55,0.35,0.15,0.05,0.0,0.0,0.0,0.0]
+solar_production_kwh=[value * solar_panel_max_capacity for value in solar_production_profile_percent]
+solar_production_kwh = [round(x, 2) for x in solar_production_kwh]
+current_solar_production_kwh = solar_production_kwh[0] # Aktuell solproduktion
+
 #Charging station
 charging_station_info= {"Power":"7.4"} #EV version 2 charger
-charging_power=7.4 # kW pchmax from car manufacturer
+charging_power = CHARGING_POWER
 
 #time
 sim_hour=0
@@ -72,9 +121,13 @@ def main_prg():
     global home_batt_max_capacity
     global home_batt_min_capacity_kWh
     global home_battery_charge_discharge_mode
+    global current_solar_production_kwh
+    global solar_production_kwh
     
     while True:
         current_household_load_kwh = base_load_residential_kwh[sim_hour] # Uppdatera bara hushållets last
+        current_solar_production_kwh = solar_production_kwh[sim_hour] # Uppdatera solproduktion
+        
         for i in range(0,seconds_per_hour):
             # EV Battery charging logic
             if ev_battery_charge_start_stopp:
@@ -136,7 +189,10 @@ def station_info():
             "home_batt_max_capacity_kwh": home_batt_max_capacity,
             "home_batt_min_capacity_kwh": home_batt_min_capacity_kWh,
             "home_batt_capacity_percent": home_batt_capacity_percent,
-            "home_battery_mode": home_battery_charge_discharge_mode
+            "home_battery_mode": home_battery_charge_discharge_mode,
+            "solar_production_kwh": current_solar_production_kwh,
+            "solar_max_capacity_kwh": solar_panel_max_capacity,
+            "net_household_load_kwh": round(current_household_load_kwh - current_solar_production_kwh, 2)
         }
         return (json.dumps(response_data),{"Access-Control-Allow-Origin":"*"})
     else:
@@ -155,6 +211,14 @@ def base_load_info():
 def price_per_hour_info():
     if request.method == 'GET':
         return (json.dumps(energy_price))
+    else:
+        return jsonify({'error': 'Unsupported HTTP method'})
+
+#deliver solar production per hour, starting at 00-01 a´clock, 01-02 a´clock, 02-03 ...
+@app.route('/solarproduction', methods=['GET'])
+def solar_production_info():
+    if request.method == 'GET':
+        return (json.dumps(solar_production_kwh))
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
@@ -189,8 +253,8 @@ def charge_battery():
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
 
-@app.route('/discharge', methods=['POST', 'GET'])
-def discharge_battery():
+@app.route('/discharge-ev-battery', methods=['POST', 'GET'])
+def discharge_EVbattery():
     global ev_battery_charge_start_stopp
     global current_household_load_kwh # Använd det nya namnet
     global base_load_residential_kwh
@@ -220,12 +284,12 @@ def discharge_battery():
                     ev_battery_charge_start_stopp=False
                     current_household_load_kwh = base_load_residential_kwh[0] # Återställ hushållets last
                     #Battery (Citroen e_Berlingo M)
-                    ev_batt_nominal_capacity=50 # kWh
-                    ev_batt_max_capacity=46.3   # kWh
-                    ev_batt_capacity_percent=20 #
+                    ev_batt_nominal_capacity = EV_BATT_NOMINAL_CAPACITY
+                    ev_batt_max_capacity = EV_BATT_MAX_CAPACITY
+                    ev_batt_capacity_percent = EV_BATT_DEFAULT_PERCENT
                     ev_batt_capacity_kWh=ev_batt_capacity_percent/100*ev_batt_max_capacity
                     #Home Battery reset
-                    home_batt_capacity_percent=85 # % (reset to good charge)
+                    home_batt_capacity_percent=HOME_BATT_DEFAULT_PERCENT # % (reset to medium charge for solar integration)
                     home_batt_capacity_kWh=home_batt_capacity_percent/100*home_batt_max_capacity
                     home_battery_charge_discharge_mode="idle"
                     sim_hour=0
@@ -237,10 +301,40 @@ def discharge_battery():
             return jsonify({'error': str(e)})
     elif request.method == 'GET':
         #return jsonify(ev_batt_capacity_percent)
-        return jsonify({'message': 'This is a GET request. Use POST to reset the battery.'})
+        return jsonify({'message': 'This is a GET request. Use POST to reset the EV battery.'})
     else:
         return jsonify({'error': 'Unsupported HTTP method'})
-    
+
+@app.route('/discharge-home-battery', methods=['POST', 'GET'])
+def discharge_home_battery():
+    global home_batt_capacity_percent
+    global home_batt_capacity_kWh
+    global home_batt_max_capacity
+    global home_battery_charge_discharge_mode
+
+    if request.method == 'POST':
+        try:
+            json_input = request.json
+            try:
+                discharg = json_input.get('discharging', 0)
+            except json.JSONDecodeError:
+                return json.dumps({'error': 'Invalid JSON input'})
+            with global_lock:
+                if discharg=="on":
+                    # Ladda ur husbatteriet till 10%
+                    home_batt_capacity_percent = 10.0 # % (discharge to minimum safe level)
+                    home_batt_capacity_kWh = home_batt_capacity_percent/100*home_batt_max_capacity
+                    home_battery_charge_discharge_mode = "idle"
+                    output_data = {'home_battery_discharging': 'on', 'new_level': home_batt_capacity_percent}
+                    return json.dumps(output_data)
+                
+        except Exception as e:
+            return jsonify({'error': str(e)})
+    elif request.method == 'GET':
+        return jsonify({'message': 'This is a GET request. Use POST to discharge home battery to 10%.'})
+    else:
+        return jsonify({'error': 'Unsupported HTTP method'})
+
 # start the increment_sum thread
 increment_sum_thread = threading.Thread(target=main_prg)
 increment_sum_thread.start()
