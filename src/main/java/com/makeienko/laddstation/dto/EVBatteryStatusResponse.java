@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class BatteryStatusResponse {
+public class EVBatteryStatusResponse {
     private double percentage;
     private double currentEnergyKwh;
     private double maxCapacityKwh;

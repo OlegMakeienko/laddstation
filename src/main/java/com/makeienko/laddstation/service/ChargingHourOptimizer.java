@@ -96,7 +96,7 @@ public class ChargingHourOptimizer {
             maxCapacityKwh = 46.3; // Fallback
         }
         double targetChargeKWh = maxCapacityKwh * 0.8;
-        double energyNeeded = targetChargeKWh - info.getBatteryEnergyKwh();
+        double energyNeeded = targetChargeKWh - info.getEvBatteryEnergyKwh();
         return Math.max(1, (int) Math.ceil(energyNeeded / CHARGING_POWER));
     }
     

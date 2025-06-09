@@ -56,22 +56,22 @@ public class LaddstationController {
      * Endpoint för batteristatus med beräknad procent
      */
     @GetMapping("/battery")
-    public ResponseEntity<BatteryStatusResponse> getBatteryStatus() {
+    public ResponseEntity<EVBatteryStatusResponse> getEVBatteryStatus() {
         try {
             InfoResponse info = apiClient.getInfo();
             
             double maxCapacityKwh = info.getEvBattMaxCapacityKwh();
-            double currentPercentage = (info.getBatteryEnergyKwh() / maxCapacityKwh) * 100;
+            double currentPercentage = (info.getEvBatteryEnergyKwh() / maxCapacityKwh) * 100;
             currentPercentage = Math.round(currentPercentage * 10.0) / 10.0; // Avrunda till 1 decimal
             
-            BatteryStatusResponse batteryStatus = new BatteryStatusResponse(
+            EVBatteryStatusResponse evBatteryStatus = new EVBatteryStatusResponse(
                 currentPercentage,
-                info.getBatteryEnergyKwh(),
+                info.getEvBatteryEnergyKwh(),
                 maxCapacityKwh,
                 info.isEvBatteryChargeStartStopp()
             );
             
-            return ResponseEntity.ok(batteryStatus);
+            return ResponseEntity.ok(evBatteryStatus);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }

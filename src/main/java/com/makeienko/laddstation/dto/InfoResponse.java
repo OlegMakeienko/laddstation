@@ -15,7 +15,7 @@ public class InfoResponse {
     private double householdLoadKwh; // base_current_load
 
     @JsonProperty("battery_energy_kwh")
-    private double batteryEnergyKwh;  // battery_capacity_kWh
+    private double evBatteryEnergyKwh;  // battery_capacity_kWh
 
     @JsonProperty("ev_battery_charge_start_stopp")
     private boolean evBatteryChargeStartStopp; // ev_battery_charge_start_stopp

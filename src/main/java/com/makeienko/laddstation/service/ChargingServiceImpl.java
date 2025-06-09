@@ -14,10 +14,10 @@ import java.util.*;
 public class ChargingServiceImpl implements ChargingService {
 
     private final LaddstationApiClient apiClient;
-    private final BatteryManager batteryManager;
+    private final EVBatteryManager batteryManager;
     private final ChargingHourOptimizer chargingHourOptimizer;
 
-    public ChargingServiceImpl(LaddstationApiClient apiClient, BatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer) {
+    public ChargingServiceImpl(LaddstationApiClient apiClient, EVBatteryManager batteryManager, ChargingHourOptimizer chargingHourOptimizer) {
         this.apiClient = apiClient;
         this.batteryManager = batteryManager;
         this.chargingHourOptimizer = chargingHourOptimizer;
@@ -38,7 +38,7 @@ public class ChargingServiceImpl implements ChargingService {
             // Skriv ut objektets data i ett strukturerat format
             System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
             System.out.println("Household Load: " + infoResponse.getHouseholdLoadKwh() + " kW");
-            System.out.println("EV Battery Energy: " + infoResponse.getBatteryEnergyKwh() + " kWh");
+            System.out.println("EV Battery Energy: " + infoResponse.getEvBatteryEnergyKwh() + " kWh");
             System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
             System.out.println("EV Battery Max Capacity: " + infoResponse.getEvBattMaxCapacityKwh() + " kWh");
         } else {
@@ -89,9 +89,9 @@ public class ChargingServiceImpl implements ChargingService {
         // Display initial battery info before starting
         InfoResponse initialInfo = apiClient.getInfo();
         if (initialInfo != null) {
-            double currentPercentage = (initialInfo.getBatteryEnergyKwh() / initialInfo.getEvBattMaxCapacityKwh()) * 100;
+            double currentPercentage = (initialInfo.getEvBatteryEnergyKwh() / initialInfo.getEvBattMaxCapacityKwh()) * 100;
             currentPercentage = Math.round(currentPercentage * 10.0) / 10.0;
-            System.out.println("Initial EV Battery Energy: " + initialInfo.getBatteryEnergyKwh() + " kWh");
+            System.out.println("Initial EV Battery Energy: " + initialInfo.getEvBatteryEnergyKwh() + " kWh");
             System.out.println("Initial EV Battery Max Capacity: " + initialInfo.getEvBattMaxCapacityKwh() + " kWh");
             System.out.println("Initial EV Battery Level: " + currentPercentage + "%");
         } else {
@@ -99,7 +99,7 @@ public class ChargingServiceImpl implements ChargingService {
         }
 
         batteryManager.startChargingApi(); // Tala om för servern att börja ladda
-        boolean targetReached = batteryManager.chargeBatteryUntilTarget();
+        boolean targetReached = batteryManager.chargeEVBatteryUntilTarget();
         if (targetReached) {
             System.out.println("ChargingServiceImpl: Direct charge completed, target reached.");
         }
@@ -160,7 +160,7 @@ public class ChargingServiceImpl implements ChargingService {
 
             boolean isCurrentlyCharging = false;
 
-            while (!batteryManager.isBatterySufficient()) {
+            while (!batteryManager.isEVBatterySufficient()) {
                 InfoResponse infoResponse = apiClient.getInfo();
                 if (infoResponse == null) {
                     System.err.println("ChargingServiceImpl: Failed to fetch info. Retrying in 10 sec...");
@@ -220,7 +220,7 @@ public class ChargingServiceImpl implements ChargingService {
     @Override
     public void dischargeBatteryTo20() {
         System.out.println("ChargingServiceImpl: Initiating discharge to 20%.");
-        batteryManager.dischargeBatteryTo20Api();
+        batteryManager.dischargeEVBatteryTo20Api();
         // We might want to poll here until 20% is confirmed, or trust the server handles it.
         // For now, just calling the API and printing a message.
         System.out.println("ChargingServiceImpl: Discharge command sent to server.");

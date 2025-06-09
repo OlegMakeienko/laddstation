@@ -47,7 +47,7 @@ public class ChargingServiceImplTest {
         //skapa en förväntat InfoResponse objekt
         expectedResponse = new InfoResponse();
         expectedResponse.setHouseholdLoadKwh(5.0);
-        expectedResponse.setBatteryEnergyKwh(9.26);
+        expectedResponse.setEvBatteryEnergyKwh(9.26);
         expectedResponse.setEvBattMaxCapacityKwh(46.3);
         expectedResponse.setSimTimeHour(14);
         expectedResponse.setSimTimeMin(30);
@@ -69,7 +69,7 @@ public class ChargingServiceImplTest {
         //verifiera resultaten
         assertNotNull(actualResponse);
         assertEquals(expectedResponse.getHouseholdLoadKwh(), actualResponse.getHouseholdLoadKwh());
-        assertEquals(expectedResponse.getBatteryEnergyKwh(), actualResponse.getBatteryEnergyKwh());
+        assertEquals(expectedResponse.getEvBatteryEnergyKwh(), actualResponse.getEvBatteryEnergyKwh());
         assertEquals(expectedResponse.getEvBattMaxCapacityKwh(), actualResponse.getEvBattMaxCapacityKwh());
         assertEquals(expectedResponse.getSimTimeHour(), actualResponse.getSimTimeHour());
         assertEquals(expectedResponse.getSimTimeMin(), actualResponse.getSimTimeMin());
