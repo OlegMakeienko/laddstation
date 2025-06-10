@@ -1,7 +1,6 @@
 package com.makeienko.laddstation.service;
 
 import com.makeienko.laddstation.dto.InfoResponse;
-import com.makeienko.laddstation.service.strategy.OptimalHoursStrategy;
 
 import org.springframework.stereotype.Service;
 
@@ -15,6 +14,5 @@ public interface ChargingService {
     void chargeEVBatteryDirect();
     void chargingSessionOnOptimalChargingHoursPrice();
     void chargingSessionOnOptimalChargingHours();
-    void performChargingSessionWithStrategy(OptimalHoursStrategy strategy);
     void dischargeEVBatteryTo20();
 }

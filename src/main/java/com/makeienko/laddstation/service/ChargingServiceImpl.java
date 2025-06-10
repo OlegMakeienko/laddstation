@@ -219,14 +219,6 @@ public class ChargingServiceImpl implements ChargingService {
         }
     }
 
-    // Ersatt av performSmartChargingSession för en mer robust logik
-    @Deprecated
-    @Override
-    public void performChargingSessionWithStrategy(OptimalHoursStrategy strategy) {
-        System.out.println("DEPRECATED: performChargingSessionWithStrategy is called, redirecting to performSmartChargingSession");
-        performSmartChargingSession(strategy);
-    }
-
     @Override
     public void dischargeEVBatteryTo20() {
         System.out.println("Initiating discharge to 20%.");
