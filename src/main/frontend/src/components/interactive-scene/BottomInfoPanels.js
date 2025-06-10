@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { householdService, timeService, batteryService } from '../../services/api';
-import './InfoPanel.css';
+import './PanelStyles.css';
+import './BottomInfoPanels.css';
 
 const BottomInfoPanels = () => {
   const [householdData, setHouseholdData] = useState({

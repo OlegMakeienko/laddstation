@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { timeService, priceService, chargingOptimizationService } from '../../services/api';
-import './InfoPanel.css';
+import './PanelStyles.css';
 
 const StaticInfoPanels = () => {
   const [currentTime, setCurrentTime] = useState('--:--');

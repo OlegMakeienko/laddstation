@@ -42,27 +42,7 @@
   cursor: default;
 }
 
-.clickable-area {
-  cursor: pointer;
-  fill: transparent;
-  stroke: none;
-}
 
-.clickable-area:hover {
-  /* No visual effects on hover */
-}
-
-.house-area:hover {
-  /* No visual effects on hover */
-}
-
-.car-area:hover {
-  /* No visual effects on hover */
-}
-
-.station-area:hover {
-  /* No visual effects on hover */
-}
 
 .charging-indicators {
   animation: fadeIn 0.5s ease-in;
@@ -148,35 +128,4 @@
   }
 }
 
-/* Bottom info panels styling */
-.bottom-info-panels {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
-  z-index: 3;
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.bottom-info-panels .info-panel {
-  flex: 1;
-  min-width: 200px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.info-label {
-  font-weight: normal;
-  color: #666;
-}
-
-.info-value {
-  font-weight: bold;
-  color: #333;
-} 
+ 
