@@ -12,9 +12,9 @@ public interface ChargingService {
     void displayInfoResponse();
     void fetchAndDisplayPriceForElZone();
     void fetchAndDisplayBaseload();
-    void chargeBatteryDirect();
+    void chargeEVBatteryDirect();
     void chargingSessionOnOptimalChargingHoursPrice();
     void chargingSessionOnOptimalChargingHours();
     void performChargingSessionWithStrategy(OptimalHoursStrategy strategy);
-    void dischargeBatteryTo20();
+    void dischargeEVBatteryTo20();
 }

@@ -24,14 +24,14 @@ public class EVBatteryManager {
      * som gör att den yttre logiken (ChargingServiceImpl) bör stoppa laddningen.
      */
     public boolean chargeEVBatteryUntilTarget() {
-        System.out.println("EVBatteryManager: Initiating charge cycle to " + TARGET_EVBATTERY_PERCENTAGE + "%");
+        System.out.println("Initiating charge cycle to " + TARGET_EVBATTERY_PERCENTAGE + "%");
         apiClient.startCharging(); 
 
         try {
             while (true) {
                 InfoResponse currentInfo = apiClient.getInfo();
                 if (currentInfo == null) {
-                    System.err.println("EVBatteryManager: Failed to get info from server during charge. Stopping.");
+                    System.err.println("Failed to get info from server during charge. Stopping.");
                     apiClient.stopCharging();
                     return false; // Indikerar problem
                 }
@@ -39,17 +39,17 @@ public class EVBatteryManager {
                 // Use ev_batt_max_capacity_kwh from InfoResponse
                 double maxCapacityKwh = currentInfo.getEvBattMaxCapacityKwh(); 
                 if (maxCapacityKwh <= 0) { // Basic sanity check
-                    System.err.println("EVBatteryManager: Invalid maxCapacityKwh from server: " + maxCapacityKwh + ". Using default 46.3");
+                    System.err.println("Invalid maxCapacityKwh from server: " + maxCapacityKwh + ". Using default 46.3");
                     maxCapacityKwh = 46.3; // Fallback, though this indicates a server data issue
                 }
                 double currentPercentage = (currentInfo.getEvBatteryEnergyKwh() / maxCapacityKwh) * 100;
                 // Avrundning för att matcha serverns precision om nödvändigt
                 currentPercentage = Math.round(currentPercentage * 10.0) / 10.0;
                 
-                System.out.println("EVBatteryManager: Current server battery level: " + currentPercentage + "%");
+                System.out.println("Current server battery level: " + currentPercentage + "%");
 
                 if (currentPercentage >= TARGET_EVBATTERY_PERCENTAGE) {
-                    System.out.println("EVBatteryManager: Target " + TARGET_EVBATTERY_PERCENTAGE + "% reached.");
+                    System.out.println("Target " + TARGET_EVBATTERY_PERCENTAGE + "% reached.");
                     // Stoppa INTE laddningen här. Den som kallade på oss (t.ex. performChargingSessionWithStrategy)
                     // kanske vill fortsätta ladda om timmen fortfarande är optimal och en annan policy gäller.
                     // Den yttre logiken ansvarar för att anropa apiClient.stopCharging() när den är helt klar.
@@ -59,19 +59,19 @@ public class EVBatteryManager {
                 // Kontrollera om servern av någon anledning slutat ladda (t.ex. manuellt via /charge off)
                 // Detta är en extra säkerhetskoll, även om ChargingServiceImpl bör hantera start/stopp primärt.
                 if (!currentInfo.isEvBatteryChargeStartStopp()) {
-                    System.out.println("EVBatteryManager: Server reports charging has stopped. Aborting charge cycle.");
+                    System.out.println("Server reports charging has stopped. Aborting charge cycle.");
                     return false; // Laddningen avbröts på servern
                 }
 
                 Thread.sleep(POLLING_INTERVAL_MS);
             }
         } catch (InterruptedException e) {
-            System.err.println("EVBatteryManager: Charging interrupted. Stopping charge on server.");
+            System.err.println("Charging interrupted. Stopping charge on server.");
             apiClient.stopCharging();
             Thread.currentThread().interrupt();
             return false; // Indikerar avbrott
         } catch (Exception e) {
-            System.err.println("EVBatteryManager: Error during charge cycle. Stopping charge on server: " + e.getMessage());
+            System.err.println("Error during charge cycle. Stopping charge on server: " + e.getMessage());
             apiClient.stopCharging();
             e.printStackTrace();
             return false; // Indikerar problem
@@ -89,7 +89,7 @@ public class EVBatteryManager {
         long realMillisecondsToWait = (long) (simulatedMinutesToWait / 15.0 * 1000.0);
         if (realMillisecondsToWait <= 0) realMillisecondsToWait = 100; // Vänta åtminstone lite för att undvika tight loop
 
-        System.out.println("EVBatteryManager: Simulating charging for " + simulatedMinutesToWait 
+        System.out.println("Simulating charging for " + simulatedMinutesToWait 
             + " simulated minutes (waiting " + realMillisecondsToWait + " ms real time).");
         try {
             Thread.sleep(realMillisecondsToWait);
@@ -98,15 +98,15 @@ public class EVBatteryManager {
                 // Use ev_batt_max_capacity_kwh from InfoResponse
                 double maxCapacityKwh = currentInfo.getEvBattMaxCapacityKwh();
                 if (maxCapacityKwh <= 0) { 
-                    System.err.println("EVBatteryManager: Invalid maxCapacityKwh in simulateChargingPeriod: " + maxCapacityKwh + ". Using default 46.3");
+                    System.err.println("Invalid maxCapacityKwh in simulateChargingPeriod: " + maxCapacityKwh + ". Using default 46.3");
                     maxCapacityKwh = 46.3;
                 }
                  double currentPercentage = (currentInfo.getEvBatteryEnergyKwh() / maxCapacityKwh) * 100;
                  currentPercentage = Math.round(currentPercentage * 10.0) / 10.0;
-                System.out.println("EVBatteryManager: Battery level after simulated period: " + currentPercentage + "%");
+                System.out.println("Battery level after simulated period: " + currentPercentage + "%");
             }
         } catch (InterruptedException e) {
-            System.err.println("EVBatteryManager: Wait period interrupted.");
+            System.err.println("Wait period interrupted.");
             Thread.currentThread().interrupt();
         }
     }
@@ -120,7 +120,7 @@ public class EVBatteryManager {
         // Use ev_batt_max_capacity_kwh from InfoResponse
         double maxCapacityKwh = infoResponse.getEvBattMaxCapacityKwh();
         if (maxCapacityKwh <= 0) { 
-            System.err.println("EVBatteryManager: Invalid maxCapacityKwh in updateEVBatteryStatus: " + maxCapacityKwh + ". Using default 46.3");
+            System.err.println("Invalid maxCapacityKwh in updateEVBatteryStatus: " + maxCapacityKwh + ". Using default 46.3");
             maxCapacityKwh = 46.3;
         }
         double currentEVBatteryEnergy = infoResponse.getEvBatteryEnergyKwh();
@@ -147,14 +147,14 @@ public class EVBatteryManager {
                 // Use ev_batt_max_capacity_kwh from InfoResponse
                 double maxCapacityKwh = infoResponse.getEvBattMaxCapacityKwh();
                 if (maxCapacityKwh <= 0) { 
-                    System.err.println("EVBatteryManager: Invalid maxCapacityKwh in isEVBatterySufficient: " + maxCapacityKwh + ". Using default 46.3");
+                    System.err.println("Invalid maxCapacityKwh in isEVBatterySufficient: " + maxCapacityKwh + ". Using default 46.3");
                     maxCapacityKwh = 46.3;
                 }
                 double evBatteryPercentage = (infoResponse.getEvBatteryEnergyKwh() / maxCapacityKwh) * 100;
                 return evBatteryPercentage >= TARGET_EVBATTERY_PERCENTAGE;
             }
         } catch (Exception e) {
-            System.err.println("EVBatteryManager: Error checking if battery is sufficient: " + e.getMessage());
+            System.err.println("Error checking if battery is sufficient: " + e.getMessage());
             // e.printStackTrace(); // Kan vara för mycket loggar i normal drift
         }
         return false; // Anta att laddning behövs om vi inte kan hämta status eller vid fel
@@ -166,10 +166,10 @@ public class EVBatteryManager {
     public void startChargingApi() {
         try {
             String response = apiClient.startCharging();
-            System.out.println("EVBatteryManager: Called API to start charging. Response: " + response);
+            System.out.println("Called API to start charging. Response: " + response);
         } catch (Exception e) {
             // Kasta vidare eller logga felet mer utförligt
-            throw new ChargingServiceException("EVBatteryManager: Failed to call API to start charging: " + e.getMessage(), e);
+            throw new ChargingServiceException("Failed to call API to start charging: " + e.getMessage(), e);
         }
     }
 
@@ -179,9 +179,9 @@ public class EVBatteryManager {
     public void stopChargingApi() {
         try {
             String response = apiClient.stopCharging();
-            System.out.println("EVBatteryManager: Called API to stop charging. Response: " + response);
+            System.out.println("Called API to stop charging. Response: " + response);
         } catch (Exception e) {
-            throw new ChargingServiceException("EVBatteryManager: Failed to call API to stop charging: " + e.getMessage(), e);
+            throw new ChargingServiceException("Failed to call API to stop charging: " + e.getMessage(), e);
         }
     }
     
@@ -191,9 +191,9 @@ public class EVBatteryManager {
     public void dischargeEVBatteryTo20Api() {
         try {
             String response = apiClient.dischargeBattery();
-            System.out.println("EVBatteryManager: Called API to discharge battery to 20%. Response: " + response);
+            System.out.println("Called API to discharge battery to 20%. Response: " + response);
         } catch (Exception e) {
-            System.err.println("EVBatteryManager: Error calling API to discharge battery: " + e.getMessage());
+            System.err.println("Error calling API to discharge battery: " + e.getMessage());
         }
     }
 } 

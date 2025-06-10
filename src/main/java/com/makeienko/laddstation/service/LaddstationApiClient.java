@@ -126,7 +126,7 @@ public class LaddstationApiClient {
     public String dischargeBattery() {
         try {
             String response = restTemplate.postForObject(
-                    BASE_URL + "/discharge",
+                    BASE_URL + "/discharge-ev-battery",
                     Map.of("discharging", "on"),
                     String.class
             );

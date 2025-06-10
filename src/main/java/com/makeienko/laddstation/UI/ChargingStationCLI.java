@@ -50,7 +50,7 @@ public class ChargingStationCLI {
                     chargingService.fetchAndDisplayPriceForElZone();
                     break;
                 case 4:
-                    chargingService.chargeBatteryDirect();
+                    chargingService.chargeEVBatteryDirect();
                     break;
                 case 5:
                     chargingService.chargingSessionOnOptimalChargingHoursPrice();
@@ -63,7 +63,7 @@ public class ChargingStationCLI {
                     System.exit(0);
                     break;
                 case 8:
-                    chargingService.dischargeBatteryTo20();
+                    chargingService.dischargeEVBatteryTo20();
                     break;
                 default:
                     System.out.println("Ogiltigt val, försök igen.");

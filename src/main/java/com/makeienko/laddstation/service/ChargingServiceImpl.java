@@ -36,11 +36,13 @@ public class ChargingServiceImpl implements ChargingService {
         // Kontrollera att data hämtades korrekt
         if (infoResponse != null) {
             // Skriv ut objektets data i ett strukturerat format
+            System.out.println("--------------------------------");
             System.out.println("Simulated Time: " + infoResponse.getSimTimeHour() + " hours, " + infoResponse.getSimTimeMin() + " minutes");
             System.out.println("Household Load: " + infoResponse.getHouseholdLoadKwh() + " kW");
             System.out.println("EV Battery Energy: " + infoResponse.getEvBatteryEnergyKwh() + " kWh");
             System.out.println("EV Battery Charge Start/Stop: " + (infoResponse.isEvBatteryChargeStartStopp() ? "Start" : "Stop"));
             System.out.println("EV Battery Max Capacity: " + infoResponse.getEvBattMaxCapacityKwh() + " kWh");
+            System.out.println("--------------------------------");
         } else {
             System.out.println("Failed to fetch and deserialize InfoResponse.");
         }
@@ -53,10 +55,12 @@ public class ChargingServiceImpl implements ChargingService {
             double[] hourlyPrices = apiClient.getHourlyPrices();
 
             // Skriv ut priserna för varje timme
+            System.out.println("--------------------------------");
             System.out.println("Elpriser för elområde (Stockholm):");
             for (int i = 0; i < hourlyPrices.length; i++) {
                 System.out.printf("Timme %d: %.2f öre/kWh%n", i, hourlyPrices[i]);
             }
+            System.out.println("--------------------------------");
         } catch (Exception e) {
             System.err.println("Fel vid hämtning av prisinformation: " + e.getMessage());
         }
@@ -69,6 +73,7 @@ public class ChargingServiceImpl implements ChargingService {
             double[] hourlyBaseload = apiClient.getBaseload();
 
             // Skriv ut hushållets energiförbrukning per timme
+            System.out.println("--------------------------------");
             System.out.println("Hushållets energiförbrukning (kWh per timme):");
             double totalConsumption = 0;
             for (int i = 0; i < hourlyBaseload.length; i++) {
@@ -77,13 +82,15 @@ public class ChargingServiceImpl implements ChargingService {
             }
             // Skriv ut total förbrukning under dygnet
             System.out.printf("Total förbrukning för dygnet: %.2f kWh%n", totalConsumption);
+            System.out.println("--------------------------------");
         } catch (Exception e) {
             System.err.println("Fel vid hämtning av baseload-information: " + e.getMessage());
         }
     }
 
     @Override
-    public void chargeBatteryDirect() {
+    public void chargeEVBatteryDirect() {
+        System.out.println("--------------------------------");
         System.out.println("ChargingServiceImpl: Starting direct charge to 80%.");
         
         // Display initial battery info before starting
@@ -95,18 +102,19 @@ public class ChargingServiceImpl implements ChargingService {
             System.out.println("Initial EV Battery Max Capacity: " + initialInfo.getEvBattMaxCapacityKwh() + " kWh");
             System.out.println("Initial EV Battery Level: " + currentPercentage + "%");
         } else {
-            System.err.println("ChargingServiceImpl: Could not fetch initial battery info before direct charge.");
+            System.err.println("Could not fetch initial battery info before direct charge.");
         }
 
         batteryManager.startChargingApi(); // Tala om för servern att börja ladda
         boolean targetReached = batteryManager.chargeEVBatteryUntilTarget();
         if (targetReached) {
-            System.out.println("ChargingServiceImpl: Direct charge completed, target reached.");
+            System.out.println("Direct charge completed, target reached.");
         }
         // Stoppa alltid laddningen på servern efteråt, oavsett om målet nåddes eller det avbröts.
         // Om chargeBatteryUntilTarget avbröts (returnerade false) har den redan försökt stoppa.
-        System.out.println("ChargingServiceImpl: Ensuring charging is stopped on server after direct charge attempt.");
+        System.out.println("Ensuring charging is stopped on server after direct charge attempt.");
         batteryManager.stopChargingApi(); 
+        System.out.println("--------------------------------");
     }
 
     boolean isOptimalHour(double currentHour, List<Double> optimalHours) {
@@ -218,7 +226,7 @@ public class ChargingServiceImpl implements ChargingService {
     }
 
     @Override
-    public void dischargeBatteryTo20() {
+    public void dischargeEVBatteryTo20() {
         System.out.println("ChargingServiceImpl: Initiating discharge to 20%.");
         batteryManager.dischargeEVBatteryTo20Api();
         // We might want to poll here until 20% is confirmed, or trust the server handles it.
