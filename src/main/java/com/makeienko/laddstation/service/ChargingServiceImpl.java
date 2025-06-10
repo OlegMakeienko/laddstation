@@ -91,7 +91,7 @@ public class ChargingServiceImpl implements ChargingService {
     @Override
     public void chargeEVBatteryDirect() {
         System.out.println("--------------------------------");
-        System.out.println("ChargingServiceImpl: Starting direct charge to 80%.");
+        System.out.println("Starting direct charge to 80%.");
         
         // Display initial battery info before starting
         InfoResponse initialInfo = apiClient.getInfo();
@@ -158,11 +158,12 @@ public class ChargingServiceImpl implements ChargingService {
 
     private void performSmartChargingSession(OptimalHoursStrategy strategy) {
         try {
-            System.out.println("ChargingServiceImpl: Starting smart charging session.");
+            System.out.println("--------------------------------");
+            System.out.println("Starting smart charging session.");
             List<Double> optimalHours = strategy.findOptimalHours();
 
             if (optimalHours.isEmpty()) {
-                System.out.println("ChargingServiceImpl: No optimal hours found. Cannot start charging session.");
+                System.out.println("No optimal hours found. Cannot start charging session.");
                 return;
             }
 
@@ -171,7 +172,7 @@ public class ChargingServiceImpl implements ChargingService {
             while (!batteryManager.isEVBatterySufficient()) {
                 InfoResponse infoResponse = apiClient.getInfo();
                 if (infoResponse == null) {
-                    System.err.println("ChargingServiceImpl: Failed to fetch info. Retrying in 10 sec...");
+                    System.err.println("Failed to fetch info. Retrying in 10 sec...");
                     Thread.sleep(10000);
                     continue;
                 }
@@ -182,36 +183,37 @@ public class ChargingServiceImpl implements ChargingService {
 
                 if (isCurrentHourOptimal) {
                     if (!isCurrentlyCharging) {
-                        System.out.println("ChargingServiceImpl: Optimal hour (" + currentHour + ") started. Starting charging on server.");
+                        System.out.println("Optimal hour (" + currentHour + ") started. Starting charging on server.");
                         batteryManager.startChargingApi();
                         isCurrentlyCharging = true;
                     }
-                    System.out.println("ChargingServiceImpl: Charging during optimal hour " + currentHour + ". Simulating 15 min charge period.");
+                    System.out.println("Charging during optimal hour " + currentHour + ". Simulating 15 min charge period.");
                     batteryManager.simulateChargingPeriod(15); // Servern laddar i 15 sim-minuter
                 } else {
                     if (isCurrentlyCharging) {
-                        System.out.println("ChargingServiceImpl: Optimal hour ended. Current non-optimal hour: " + currentHour + ". Stopping charging on server.");
+                        System.out.println("Optimal hour ended. Current non-optimal hour: " + currentHour + ". Stopping charging on server.");
                         batteryManager.stopChargingApi();
                         isCurrentlyCharging = false;
                     }
-                    System.out.println("ChargingServiceImpl: Current hour (" + currentHour + ") is not optimal. Waiting until the next simulated hour begins.");
+                    System.out.println("Current hour (" + currentHour + ") is not optimal. Waiting until the next simulated hour begins.");
                     waitUntilNextHour(currentMinute);
                 }
             }
 
             // Batteriet är tillräckligt laddat
             if (isCurrentlyCharging) {
-                System.out.println("ChargingServiceImpl: Target battery level reached. Stopping charging on server.");
+                System.out.println("Target battery level reached. Stopping charging on server.");
                 batteryManager.stopChargingApi();
             }
-            System.out.println("ChargingServiceImpl: Smart charging session complete. Battery is sufficiently charged.");
+            System.out.println("Smart charging session complete. Battery is sufficiently charged.");
+            System.out.println("--------------------------------");
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("ChargingServiceImpl: Smart charging session was interrupted.");
+            System.err.println("Smart charging session was interrupted.");
             batteryManager.stopChargingApi(); // Försök stoppa laddningen om tråden avbryts
         } catch (Exception e) {
-            System.err.println("ChargingServiceImpl: Error in smart charging session: " + e.getMessage());
+            System.err.println("Error in smart charging session: " + e.getMessage());
             batteryManager.stopChargingApi(); // Försök stoppa laddningen vid fel
             throw new ChargingServiceException("Error in smart charging session with strategy.", e);
         }
@@ -227,18 +229,18 @@ public class ChargingServiceImpl implements ChargingService {
 
     @Override
     public void dischargeEVBatteryTo20() {
-        System.out.println("ChargingServiceImpl: Initiating discharge to 20%.");
+        System.out.println("Initiating discharge to 20%.");
         batteryManager.dischargeEVBatteryTo20Api();
         // We might want to poll here until 20% is confirmed, or trust the server handles it.
         // For now, just calling the API and printing a message.
-        System.out.println("ChargingServiceImpl: Discharge command sent to server.");
+        System.out.println("Discharge command sent to server.");
         // Optionally, display battery status after a short delay
         try {
             Thread.sleep(2000); // Wait 2 seconds for server to process
             displayInfoResponse();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("ChargingServiceImpl: Interrupted while waiting to display info after discharge command.");
+            System.err.println("Interrupted while waiting to display info after discharge command.");
         }
     }
 }
