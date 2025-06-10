@@ -65,14 +65,8 @@ const BottomInfoPanels = () => {
         </div>
         <div className="info-panel-content">
           <div className="house-info">
-            <div className="info-item">
-              <span className="info-label">Aktuell förbrukning:</span>
-              <span className="info-value">{householdData.currentConsumption} kWh</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Dagens totala förbrukning:</span>
-              <span className="info-value">{householdData.dailyTotal} kWh</span>
-            </div>
+            <span className="current-consumption">{householdData.currentConsumption} kWh</span>
+            <span className="consumption-status">Aktuell förbrukning</span>
           </div>
         </div>
       </div>
@@ -83,18 +77,8 @@ const BottomInfoPanels = () => {
         </div>
         <div className="info-panel-content">
           <div className="battery-info">
-            <div className="info-item">
-              <span className="info-label">EV Batteristatus:</span>
-              <span className="info-value">{batteryData.percentage}%</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Batterikapacitet:</span>
-              <span className="info-value">{batteryData.currentEnergyKwh}/{batteryData.maxCapacityKwh} kWh</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Status:</span>
-              <span className="info-value">{batteryData.isCharging ? 'Laddar aktiv' : 'Redo för laddning'}</span>
-            </div>
+            <span className="current-battery">{batteryData.percentage}%</span>
+            <span className="battery-status">EV Batteristatus</span>
           </div>
         </div>
       </div>

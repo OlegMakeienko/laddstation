@@ -20,18 +20,11 @@
   max-width: 400px;
 }
 
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
+.bottom-info-panels .house-panel {
+  transform: translate(200px, 10px);
 }
 
-.info-label {
-  font-weight: normal;
-  color: #666;
-}
-
-.info-value {
-  font-weight: bold;
-  color: #333;
-} 
+.bottom-info-panels .car-panel {
+    transform: translate(-80px, 30px);
+  }
+  
