@@ -23,20 +23,7 @@ public class LaddstationController {
     }
 
     /**
-     * Hämtar simulerad tid och batteristatus från Python servern
-     */
-    @GetMapping("/info")
-    public ResponseEntity<InfoResponse> getInfo() {
-        try {
-            InfoResponse info = apiClient.getInfo();
-            return ResponseEntity.ok(info);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * Endpoint specifikt för att hämta bara tiden
+     * Hämtar simulerad tid från Python servern
      */
     @GetMapping("/time")
     public ResponseEntity<TimeResponse> getCurrentTime() {
@@ -53,9 +40,9 @@ public class LaddstationController {
     }
 
     /**
-     * Endpoint för batteristatus med beräknad procent
+     * Endpoint för EV batteristatus med beräknad procent
      */
-    @GetMapping("/battery")
+    @GetMapping("/ev-battery")
     public ResponseEntity<EVBatteryStatusResponse> getEVBatteryStatus() {
         try {
             InfoResponse info = apiClient.getInfo();

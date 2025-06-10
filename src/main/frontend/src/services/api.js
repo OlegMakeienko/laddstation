@@ -64,7 +64,7 @@ export const batteryService = {
   // Hämta batteristatus från backend
   async getBatteryStatus() {
     try {
-      const response = await fetch(`${API_BASE_URL}/battery`);
+      const response = await fetch(`${API_BASE_URL}/ev-battery`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

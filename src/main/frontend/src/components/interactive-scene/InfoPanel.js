@@ -80,18 +80,14 @@ const InfoPanel = ({ objectType, chargingStatus, onToggleCharging, onClose }) =>
           title: '🏠 Smart Hus',
           info: [
             `Aktuell förbrukning: ${householdData.currentConsumption} kWh`,
-            `Dagens totala förbrukning: ${householdData.dailyTotal} kWh`,
-            'Solpaneler: ',
-            'Energiproduktion idag: ',
-            'Nettoexport: ',
-            'Status: '
+            `Dagens totala förbrukning: ${householdData.dailyTotal} kWh`
           ]
         };
       case 'car':
         return {
           title: '🚗 Elbil',
           info: [
-            `Batteristatus: ${batteryData.percentage}%`,
+            `EV Batteristatus: ${batteryData.percentage}%`,
             `Batterikapacitet: ${batteryData.currentEnergyKwh}/${batteryData.maxCapacityKwh} kWh`,
             `Status: ${batteryData.isCharging ? 'Laddar aktiv' : 'Redo för laddning'}`
           ]
