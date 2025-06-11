@@ -25,6 +25,37 @@
 }
 
 .bottom-info-panels .car-panel {
-    transform: translate(-80px, 30px);
+    transform: translate(-80px, 40px);
   }
+
+.battery-indicator {
+  position: relative;
+  width: 80%; /* Adjust width to leave space for text and terminal */
+  height:20px;
+  background-color: #f0f0f0;
+  border: 2px solid #bbb;
+  border-radius: 8px;
+  margin: -15px auto 5px auto; /* Center it and add some space below */
+}
+
+/* The battery terminal */
+.battery-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -10px; /* Position it just outside the main body */
+  transform: translateY(-50%);
+  width: 5px;
+  height: 12px;
+  background-color: #bbb;
+  border-radius: 0 3px 3px 0; /* Round the corners on the outer side */
+}
+
+.battery-level {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 4px; /* Slightly smaller radius than the container */
+  transition: width 0.3s ease;
+  animation: pulse-green 2s infinite;
+}
   

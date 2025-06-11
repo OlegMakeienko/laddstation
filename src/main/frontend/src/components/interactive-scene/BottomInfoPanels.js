@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { householdService, timeService, batteryService } from '../../services/api';
 import './PanelStyles.css';
 import './BottomInfoPanels.css';
+import './ChargingControls.css';
 
 const BottomInfoPanels = () => {
   const [householdData, setHouseholdData] = useState({
@@ -61,7 +62,7 @@ const BottomInfoPanels = () => {
     <div className="bottom-info-panels">
       <div className="info-panel horizontal-panel house-panel">
         <div className="info-panel-header">
-          <h3>🏠 Smart Hus</h3>
+          <h3>🏠 Hus</h3>
         </div>
         <div className="info-panel-content">
           <div className="house-info">
@@ -76,9 +77,13 @@ const BottomInfoPanels = () => {
           <h3>🚗 Elbil</h3>
         </div>
         <div className="info-panel-content">
-          <div className="battery-info">
-            <span className="current-battery">{batteryData.percentage}%</span>
-            <span className="battery-status">EV Batteristatus</span>
+          <div className="charging-progress">
+            <div className="battery-indicator">
+              <div className="battery-level" style={{ width: `${batteryData.percentage}%` }}></div>
+            </div>
+            <p>
+                {`${Math.round(batteryData.percentage)}% (${batteryData.currentEnergyKwh.toFixed(1)}/${batteryData.maxCapacityKwh.toFixed(1)} kWh)`}
+            </p>
           </div>
         </div>
       </div>
