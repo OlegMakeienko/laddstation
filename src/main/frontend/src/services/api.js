@@ -1,15 +1,18 @@
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:5001';
 
 export const timeService = {
   // Hämta simulerad tid från backend
   async getCurrentTime() {
     try {
-      const response = await fetch(`${API_BASE_URL}/time`);
+      const response = await fetch(`${API_BASE_URL}/info`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      return data;
+      return {
+        hour: data.sim_time_hour,
+        minute: data.sim_time_min
+      };
     } catch (error) {
       console.error('Error fetching time from backend:', error);
       // Fallback till lokal tid om backend inte är tillgängligt
@@ -64,12 +67,18 @@ export const batteryService = {
   // Hämta batteristatus från backend
   async getBatteryStatus() {
     try {
-      const response = await fetch(`${API_BASE_URL}/ev-battery`);
+      const response = await fetch(`${API_BASE_URL}/info`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      return data;
+      // Konvertera från Python-serverns format till det format som React-appen förväntar sig
+      return {
+        percentage: Math.round((data.battery_energy_kwh / data.ev_batt_max_capacity_kwh) * 100),
+        currentEnergyKwh: data.battery_energy_kwh,
+        maxCapacityKwh: data.ev_batt_max_capacity_kwh,
+        isCharging: data.ev_battery_charge_start_stopp
+      };
     } catch (error) {
       console.error('Error fetching battery status from backend:', error);
       // Fallback data om backend inte är tillgängligt
@@ -87,12 +96,27 @@ export const priceService = {
   // Hämta aktuellt timpris från backend
   async getCurrentPrice() {
     try {
-      const response = await fetch(`${API_BASE_URL}/current-price`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Hämta priser per timme
+      const priceResponse = await fetch(`${API_BASE_URL}/priceperhour`);
+      if (!priceResponse.ok) {
+        throw new Error(`HTTP error! status: ${priceResponse.status}`);
       }
-      const data = await response.json();
-      return data;
+      const hourlyPrices = await priceResponse.json();
+
+      // Hämta aktuell timme
+      const timeResponse = await fetch(`${API_BASE_URL}/info`);
+      if (!timeResponse.ok) {
+        throw new Error(`HTTP error! status: ${timeResponse.status}`);
+      }
+      const timeData = await timeResponse.json();
+      const currentHour = timeData.sim_time_hour;
+      
+      // Returnera data i det format som React-appen förväntar sig
+      return {
+        currentPrice: hourlyPrices[currentHour] / 100, // Konvertera från öre till kronor
+        currentHour: currentHour,
+        hourlyPrices: hourlyPrices.map(price => price / 100) // Konvertera från öre till kronor
+      };
     } catch (error) {
       console.error('Error fetching current price from backend:', error);
       // Fallback data om backend inte är tillgängligt
@@ -147,4 +171,4 @@ export const chargingOptimizationService = {
       };
     }
   }
-}; 
+};

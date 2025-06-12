@@ -41,10 +41,15 @@
   cursor: default;
 }
 
-
+/* Klickbara områden */
+.clickable-area {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
 .charging-indicators {
   animation: fadeIn 0.5s ease-in;
+  transform: translateY(45px);
 }
 
 @keyframes fadeIn {

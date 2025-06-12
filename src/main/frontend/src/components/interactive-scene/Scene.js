@@ -29,6 +29,7 @@ const Scene = () => {
             width="250" 
             height="250" 
             fill="transparent"
+            //className="clickable-area"
           />
           
           {/* Car clickable area - center */}
@@ -38,15 +39,18 @@ const Scene = () => {
             width="180" 
             height="120" 
             fill="transparent"
+            //className="clickable-area"
           />
           
           {/* Charging station clickable area - right side */}
           <rect 
-            x="542" 
-            y="185" 
+            x="520" 
+            y="190" 
             width="50" 
             height="120" 
             fill="transparent"
+            className="clickable-area"
+            onClick={toggleCharging}
           />
 
           {/* Visual indicators when charging */}
@@ -73,7 +77,7 @@ const Scene = () => {
               
               {/* Car charging indicator */}
               <circle 
-                cx="380" 
+                cx="320" 
                 cy="240" 
                 r="6" 
                 fill="#00ff00" 
