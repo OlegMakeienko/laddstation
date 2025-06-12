@@ -151,6 +151,19 @@ public class LaddstationController {
             return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
+    
+    /**
+     * Laddar ur EV batteriet till 20%
+     */
+    @PostMapping("/discharge")
+    public ResponseEntity<Map<String, String>> dischargeBattery() {
+        try {
+            chargingService.dischargeEVBatteryTo20();
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Discharging to 20% started"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
 
     /**
      * Formatera optimala timmar till ett läsbart tidsintervall

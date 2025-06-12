@@ -144,6 +144,27 @@ export const batteryService = {
       }
       */
     }
+  },
+  
+  // Ladda ur batteriet till 20%
+  async dischargeBattery() {
+    try {
+      const response = await fetch(`${API_JAVA_BACKEND_URL}/api/discharge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error discharging battery:', error);
+      throw error;
+    }
   }
 };
 

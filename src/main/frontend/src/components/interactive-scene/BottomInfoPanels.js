@@ -17,6 +17,8 @@ const BottomInfoPanels = () => {
     maxCapacityKwh: 0,
     isCharging: false
   });
+  
+  const [isDischarging, setIsDischarging] = useState(false);
 
   const fetchHouseholdData = async () => {
     try {
@@ -57,6 +59,20 @@ const BottomInfoPanels = () => {
     
     return () => clearInterval(interval);
   }, []);
+  
+  // Hantera urladdning av batteriet
+  const handleDischarge = async () => {
+    try {
+      setIsDischarging(true);
+      await batteryService.dischargeBattery();
+      // Uppdatera batteridata direkt efter urladdning
+      await fetchBatteryData();
+    } catch (error) {
+      console.error('Error discharging battery:', error);
+    } finally {
+      setIsDischarging(false);
+    }
+  };
 
   return (
     <div className="bottom-info-panels">
@@ -68,6 +84,23 @@ const BottomInfoPanels = () => {
           <div className="house-info">
             <span className="current-consumption">{householdData.currentConsumption} kWh</span>
             <span className="consumption-status">Aktuell förbrukning</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="info-panel horizontal-panel discharge-panel">
+        <div className="info-panel-header">
+          <h3>🔋 Urladdning</h3>
+        </div>
+        <div className="info-panel-content">
+          <div className="discharge-control">
+            <button 
+              className={`charge-btn ${isDischarging ? 'stop' : 'discharge'}`}
+              onClick={handleDischarge}
+              disabled={isDischarging || batteryData.percentage <= 20}
+            >
+              {isDischarging ? 'Urladdar...' : 'Urladda till 20%'}
+            </button>
           </div>
         </div>
       </div>

@@ -24,9 +24,16 @@
   transform: translate(200px, 10px);
 }
 
+.bottom-info-panels .discharge-panel {
+  flex: 0.6; /* Mindre flex-värde för att göra den mindre */
+  min-width: 150px;
+  max-width: 200px;
+  transform: translate(-340px, 10px);
+}
+
 .bottom-info-panels .car-panel {
-    transform: translate(-80px, 40px);
-  }
+  transform: translate(-80px, 40px);
+}
 
 .battery-indicator {
   position: relative;
@@ -57,5 +64,37 @@
   border-radius: 4px; /* Slightly smaller radius than the container */
   transition: width 0.3s ease;
   animation: pulse-green 2s infinite;
+}
+
+.discharge-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.charge-btn.discharge {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.charge-btn.discharge:hover {
+  background: linear-gradient(135deg, #f57c00, #ef6c00);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+}
+
+.charge-btn:disabled {
+  background: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Mindre knapp i discharge-panelen */
+.discharge-panel .charge-btn {
+  font-size: 12px;
+  padding: 8px 16px;
 }
   
