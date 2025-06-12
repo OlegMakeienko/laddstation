@@ -3,8 +3,10 @@ package com.makeienko.laddstation.controller;
 import com.makeienko.laddstation.dto.*;
 import com.makeienko.laddstation.service.LaddstationApiClient;
 import com.makeienko.laddstation.service.ChargingHourOptimizer;
+import com.makeienko.laddstation.service.ChargingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -16,10 +18,12 @@ public class LaddstationController {
 
     private final LaddstationApiClient apiClient;
     private final ChargingHourOptimizer chargingHourOptimizer;
+    private final ChargingService chargingService;
 
-    public LaddstationController(LaddstationApiClient apiClient, ChargingHourOptimizer chargingHourOptimizer) {
+    public LaddstationController(LaddstationApiClient apiClient, ChargingHourOptimizer chargingHourOptimizer, ChargingService chargingService) {
         this.apiClient = apiClient;
         this.chargingHourOptimizer = chargingHourOptimizer;
+        this.chargingService = chargingService;
     }
 
     /**
@@ -118,6 +122,33 @@ public class LaddstationController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * Startar laddning av EV batteriet med direkt laddning till 80%
+     */
+    @PostMapping("/charge/start")
+    public ResponseEntity<Map<String, String>> startCharging() {
+        try {
+            // Använd ChargingService för att ladda direkt till 80%
+            chargingService.chargeEVBatteryDirect();
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Direct charging to 80% started"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+    
+    /**
+     * Stoppar laddning av EV batteriet
+     */
+    @PostMapping("/charge/stop")
+    public ResponseEntity<Map<String, String>> stopCharging() {
+        try {
+            String result = apiClient.stopCharging();
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Charging stopped", "result", result));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 

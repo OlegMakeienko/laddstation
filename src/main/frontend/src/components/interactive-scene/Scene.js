@@ -1,13 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StaticInfoPanels from './StaticInfoPanels';
 import BottomInfoPanels from './BottomInfoPanels';
+import { batteryService } from '../../services/api';
 import './Scene.css';
 
 const Scene = () => {
   const [chargingStatus, setChargingStatus] = useState(false);
+  
+  // Hämta initial laddningsstatus från backend
+  useEffect(() => {
+    const fetchChargingStatus = async () => {
+      try {
+        const batteryData = await batteryService.getBatteryStatus();
+        setChargingStatus(batteryData.isCharging);
+      } catch (error) {
+        console.error('Error fetching initial charging status:', error);
+      }
+    };
+    
+    fetchChargingStatus();
+    
+    // Uppdatera laddningsstatus varje 5 sekunder
+    const interval = setInterval(fetchChargingStatus, 5000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
-  const toggleCharging = () => {
-    setChargingStatus(!chargingStatus);
+  const toggleCharging = async () => {
+    try {
+      // Anropa backend för att starta eller stoppa laddningen
+      const endpoint = chargingStatus 
+        ? 'http://localhost:8080/api/charge/stop' 
+        : 'http://localhost:8080/api/charge/start';
+        
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        // Uppdatera lokal state bara om anropet lyckades
+        setChargingStatus(!chargingStatus);
+      } else {
+        console.error('Failed to toggle charging status');
+      }
+    } catch (error) {
+      console.error('Error toggling charging:', error);
+    }
   };
 
   return (
